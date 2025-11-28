@@ -11,11 +11,7 @@ export const config = {
 };
 
 const openai = new OpenAI({
-  apiKey: process.env.PORTKEY_API_KEY,
-  baseURL: process.env.PORTKEY_BASE_URL,
-  defaultHeaders: {
-    'x-portkey-virtual-key': process.env.PORTKEY_VIRTUAL_KEY,
-  },
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export default async function handler(
