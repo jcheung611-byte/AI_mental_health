@@ -3,6 +3,7 @@ import Head from 'next/head';
 import VoiceButton from '@/components/VoiceButton';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase, DEFAULT_USER_ID } from '@/utils/supabase';
 
 type Message = {
   id: string;
@@ -239,27 +240,86 @@ export default function Home() {
     }
   };
 
-  // Load conversations and memories from localStorage on mount
+  // Load conversations and memories from Supabase (or localStorage as fallback) on mount
   useEffect(() => {
-    const loadConversations = () => {
+    const loadConversations = async () => {
+      try {
+        // Try loading from Supabase first
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('user_id', DEFAULT_USER_ID)
+          .order('created_at', { ascending: true });
+        
+        if (error) {
+          console.warn('Supabase load failed, falling back to localStorage:', error);
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          const messagesWithDates = data.map((msg: any) => ({
+            id: msg.id,
+            role: msg.role,
+            text: msg.text,
+            timestamp: new Date(msg.created_at),
+            audioUrl: msg.audio_url,
+            generatedVoice: msg.generated_voice,
+            generatedModel: msg.generated_model,
+          }));
+          setMessages(messagesWithDates);
+          console.log(`[${new Date().toISOString()}] ☁️ Loaded ${messagesWithDates.length} messages from Supabase`);
+          return;
+        }
+      } catch (error) {
+        console.log('Loading from localStorage instead...');
+      }
+      
+      // Fallback to localStorage
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          // Convert timestamp strings back to Date objects
           const messagesWithDates = parsed.map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp)
           }));
           setMessages(messagesWithDates);
-          console.log(`[${new Date().toISOString()}] 💾 Loaded ${messagesWithDates.length} messages from storage`);
+          console.log(`[${new Date().toISOString()}] 💾 Loaded ${messagesWithDates.length} messages from localStorage`);
         }
       } catch (error) {
         console.error('Failed to load conversations:', error);
       }
     };
 
-    const loadMemories = () => {
+    const loadMemories = async () => {
+      try {
+        // Try loading from Supabase first
+        const { data, error } = await supabase
+          .from('memories')
+          .select('*')
+          .eq('user_id', DEFAULT_USER_ID)
+          .order('created_at', { ascending: true });
+        
+        if (error) {
+          console.warn('Supabase memories load failed, falling back to localStorage:', error);
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          const memoriesWithDates = data.map((mem: any) => ({
+            id: mem.id,
+            fact: mem.fact,
+            timestamp: new Date(mem.created_at),
+          }));
+          setMemories(memoriesWithDates);
+          console.log(`[${new Date().toISOString()}] ☁️ Loaded ${memoriesWithDates.length} memories from Supabase`);
+          return;
+        }
+      } catch (error) {
+        console.log('Loading memories from localStorage instead...');
+      }
+      
+      // Fallback to localStorage
       try {
         const stored = localStorage.getItem(MEMORY_STORAGE_KEY);
         if (stored) {
@@ -269,7 +329,7 @@ export default function Home() {
             timestamp: new Date(mem.timestamp)
           }));
           setMemories(memoriesWithDates);
-          console.log(`[${new Date().toISOString()}] 🧠 Loaded ${memoriesWithDates.length} memories from storage`);
+          console.log(`[${new Date().toISOString()}] 💾 Loaded ${memoriesWithDates.length} memories from localStorage`);
         }
       } catch (error) {
         console.error('Failed to load memories:', error);
@@ -320,26 +380,73 @@ export default function Home() {
     loadVoiceSettings();
   }, []);
 
-  // Manual save function to avoid excessive saves during streaming
-  const saveMessagesToStorage = (messagesToSave: Message[]) => {
+  // Manual save function to save to both Supabase and localStorage
+  const saveMessagesToStorage = async (messagesToSave: Message[]) => {
     try {
+      // Save to localStorage (instant, always works)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messagesToSave));
-      console.log(`[${new Date().toISOString()}] 💾 Saved ${messagesToSave.length} messages to storage`);
+      
+      // Save to Supabase (persistent across devices/deployments)
+      const messagesForSupabase = messagesToSave.map(msg => ({
+        id: msg.id,
+        user_id: DEFAULT_USER_ID,
+        role: msg.role,
+        text: msg.text,
+        audio_url: msg.audioUrl,
+        generated_voice: msg.generatedVoice,
+        generated_model: msg.generatedModel,
+        created_at: msg.timestamp.toISOString(),
+      }));
+      
+      // Upsert to Supabase (insert or update if exists)
+      const { error } = await supabase
+        .from('messages')
+        .upsert(messagesForSupabase, { onConflict: 'id' });
+      
+      if (error) {
+        console.warn('Failed to save to Supabase (localStorage still saved):', error);
+      } else {
+        console.log(`[${new Date().toISOString()}] ☁️ Saved ${messagesToSave.length} messages to Supabase`);
+      }
     } catch (error) {
       console.error('Failed to save conversations:', error);
     }
   };
 
-  // Save memories to localStorage whenever they change
+  // Save memories to both Supabase and localStorage whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memories));
-      if (memories.length > 0) {
-        console.log(`[${new Date().toISOString()}] 🧠 Saved ${memories.length} memories to storage`);
+    const saveMemories = async () => {
+      try {
+        // Save to localStorage (instant, always works)
+        localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memories));
+        
+        if (memories.length > 0) {
+          // Save to Supabase (persistent across devices/deployments)
+          const memoriesForSupabase = memories.map(mem => ({
+            id: mem.id,
+            user_id: DEFAULT_USER_ID,
+            fact: mem.fact,
+            created_at: mem.timestamp.toISOString(),
+            last_used_at: mem.timestamp.toISOString(),
+          }));
+          
+          // Upsert to Supabase (insert or update if exists)
+          const { error } = await supabase
+            .from('memories')
+            .upsert(memoriesForSupabase, { onConflict: 'id' });
+          
+          if (error) {
+            console.warn('Failed to save memories to Supabase (localStorage still saved):', error);
+          } else {
+            console.log(`[${new Date().toISOString()}] ☁️ Saved ${memories.length} memories to Supabase`);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to save memories:', error);
       }
-    } catch (error) {
-      console.error('Failed to save memories:', error);
-    }
+    };
+    
+    saveMemories();
   }, [memories]);
 
   // Save memory settings whenever they change
@@ -595,21 +702,55 @@ export default function Home() {
     setPlayingMessageId(null);
   };
 
-  const clearConversation = () => {
+  const clearConversation = async () => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🗑️ Clearing conversation history`);
     stopAllAudio();
     setMessages([]);
     localStorage.removeItem(STORAGE_KEY);
+    
+    // Also clear from Supabase
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('user_id', DEFAULT_USER_ID);
+      
+      if (error) {
+        console.warn('Failed to clear messages from Supabase:', error);
+      } else {
+        console.log(`[${timestamp}] ☁️ Cleared messages from Supabase`);
+      }
+    } catch (error) {
+      console.error('Error clearing Supabase messages:', error);
+    }
+    
     setStatus('Conversation cleared - Ready to chat');
     setShowClearModal(false);
   };
 
-  const clearMemories = () => {
+  const clearMemories = async () => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🧠 Clearing all memories`);
     setMemories([]);
     localStorage.removeItem(MEMORY_STORAGE_KEY);
+    
+    // Also clear from Supabase
+    try {
+      const { error } = await supabase
+        .from('memories')
+        .delete()
+        .eq('user_id', DEFAULT_USER_ID);
+      
+      if (error) {
+        console.warn('Failed to clear memories from Supabase:', error);
+      } else {
+        console.log(`[${timestamp}] ☁️ Cleared memories from Supabase`);
+      }
+    } catch (error) {
+      console.error('Error clearing Supabase memories:', error);
+    }
+    
     setMemoryToast('All memories cleared');
     setTimeout(() => setMemoryToast(null), 2000);
   };
@@ -650,10 +791,27 @@ export default function Home() {
     setTimeout(() => setMemoryToast(null), 2000);
   };
 
-  const deleteMemory = (memoryId: string) => {
+  const deleteMemory = async (memoryId: string) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🧠 Deleting memory: ${memoryId}`);
     setMemories(prev => prev.filter(m => m.id !== memoryId));
+    
+    // Also delete from Supabase
+    try {
+      const { error } = await supabase
+        .from('memories')
+        .delete()
+        .eq('id', memoryId);
+      
+      if (error) {
+        console.warn('Failed to delete memory from Supabase:', error);
+      } else {
+        console.log(`[${timestamp}] ☁️ Deleted memory from Supabase`);
+      }
+    } catch (error) {
+      console.error('Error deleting Supabase memory:', error);
+    }
+    
     setMemoryToast('Memory deleted');
     setTimeout(() => setMemoryToast(null), 2000);
   };

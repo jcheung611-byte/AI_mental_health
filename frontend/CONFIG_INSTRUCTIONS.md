@@ -1,38 +1,63 @@
 # Configuration Instructions
 
-Since Cursor blocks `.env.local` files by default, we're using `config.env` instead for development.
+## Required API Keys:
 
-## Edit Your Keys Here:
+You'll need:
+1. **OpenAI API Key** - For Whisper (speech-to-text), GPT-4 (chat), and TTS (text-to-speech)
+2. **Supabase Project** - For persistent storage of conversations and memories
 
-Open `config.env` in this directory and add:
+## Setup Instructions:
 
-```
-PORTKEY_API_KEY=pk-your-actual-personal-key
-PORTKEY_VIRTUAL_KEY=openai-virtual-xxxxxxx
-PORTKEY_BASE_URL=https://api.portkey.ai/v1
-```
+### 1. OpenAI API Key
 
-## Where to Get Your Keys:
+1. Go to: https://platform.openai.com/api-keys
+2. Create new API key for this project
+3. Copy the key (starts with `sk-proj-...`)
 
-1. **PORTKEY_API_KEY**: Your personal Portkey API key from https://app.portkey.ai/
-2. **PORTKEY_VIRTUAL_KEY**: Company's shared OpenAI virtual key (from Portkey → Virtual Keys)
-3. **PORTKEY_BASE_URL**: Already set correctly (don't change)
+### 2. Supabase Setup
 
-## After Editing:
+1. Go to: https://supabase.com
+2. Create new project (name: `ai-mental-health`)
+3. Wait ~2 minutes for setup
+4. Go to **Settings → API**
+5. Copy:
+   - **Project URL** (looks like `https://xxxxx.supabase.co`)
+   - **anon public** key (starts with `eyJ...`)
+6. Go to **SQL Editor**
+7. Run the SQL from `supabase-schema.sql` to create tables
 
-Run this command to copy it to the right place:
+### 3. Create `.env.local` File
+
+Create a file named `.env.local` in this directory with:
+
 ```bash
-cp config.env .env.local
+# OpenAI API Key
+OPENAI_API_KEY=sk-proj-your-key-here
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...your-key-here
 ```
 
-Then start the app:
+### 4. Start the App
+
 ```bash
+npm install
 npm run dev
 ```
 
-## Before Pushing to Git:
+Visit: http://localhost:3000
 
-Delete or move `config.env` so you don't accidentally commit your keys!
+## Deploying to Vercel:
+
+1. Push your code to GitHub (`.env.local` is automatically ignored)
+2. Import project on Vercel
+3. Add the same 3 environment variables in Vercel settings
+4. Deploy!
+
+## Security Note:
+
+Never commit `.env.local` to git! It's already in `.gitignore`.
 
 
 
