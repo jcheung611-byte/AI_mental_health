@@ -13,6 +13,10 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<number>(0);
+  
+  // Max recording duration (5 minutes = 300 seconds)
+  // This prevents files from being too large for Vercel (4.5MB limit)
+  const MAX_DURATION_SECONDS = 300;
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -67,7 +71,17 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
 
       // Start duration counter
       const id = setInterval(() => {
-        setDuration(prev => prev + 0.1);
+        setDuration(prev => {
+          const newDuration = prev + 0.1;
+          
+          // Auto-stop at max duration
+          if (newDuration >= MAX_DURATION_SECONDS) {
+            console.log(`[${new Date().toISOString()}] ⏱️ Max duration reached, auto-stopping`);
+            stopRecording();
+          }
+          
+          return newDuration;
+        });
       }, 100);
       setIntervalId(id);
     } catch (error) {
@@ -111,6 +125,23 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
     try {
       const audioBlob = await recorder.stopRecording();
       console.log(`[${new Date().toISOString()}] 📦 Audio blob created:`, audioBlob.size, 'bytes');
+      
+      // Check file size (4.5 MB limit for Vercel free tier)
+      const maxSizeBytes = 4.5 * 1024 * 1024; // 4.5 MB
+      if (audioBlob.size > maxSizeBytes) {
+        const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(1);
+        console.error(`[${new Date().toISOString()}] ❌ Audio file too large:`, sizeMB, 'MB');
+        alert(`Recording too long! (${sizeMB} MB)\n\nPlease record messages under 5 minutes.\nTry breaking your message into shorter parts.`);
+        
+        setIsRecording(false);
+        setRecorder(null);
+        
+        if (intervalId) {
+          clearInterval(intervalId);
+          setIntervalId(null);
+        }
+        return;
+      }
       
       setIsRecording(false);
       setRecorder(null);
@@ -158,15 +189,24 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
       </button>
       
       {isRecording && (
-        <div className="text-sm text-gray-600 font-mono">
-          Recording: {duration.toFixed(1)}s
+        <div className="flex flex-col items-center gap-1">
+          <div className={`text-sm font-mono font-semibold ${
+            duration > MAX_DURATION_SECONDS * 0.8 ? 'text-red-600' : 'text-gray-600'
+          }`}>
+            Recording: {duration.toFixed(1)}s / {MAX_DURATION_SECONDS}s
+          </div>
+          {duration > MAX_DURATION_SECONDS * 0.8 && (
+            <div className="text-xs text-red-600 font-semibold animate-pulse">
+              ⚠️ Approaching max length - wrap it up!
+            </div>
+          )}
         </div>
       )}
       
       <div className="text-xs text-gray-500 text-center max-w-xs">
         {isRecording 
           ? '🔴 Recording in progress - Click to stop and send' 
-          : 'Click to start recording your message'
+          : 'Click to start recording (max 5 minutes)'
         }
       </div>
     </div>

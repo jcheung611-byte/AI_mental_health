@@ -1078,6 +1078,11 @@ export default function Home() {
       });
 
       if (!transcribeResponse.ok) {
+        // Check for file too large error (413)
+        if (transcribeResponse.status === 413) {
+          throw new Error('Recording too long! Audio file is too large.\n\nPlease record messages under 5 minutes.\n\nTip: Try breaking your message into shorter parts.');
+        }
+        
         const errorData = await transcribeResponse.json().catch(() => ({}));
         const errorMsg = errorData.details || errorData.error || 'Transcription failed';
         
