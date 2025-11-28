@@ -46,10 +46,77 @@ export default function Home() {
   // Voice settings
   const [selectedVoice, setSelectedVoice] = useState<string>('nova');
   const [selectedModel, setSelectedModel] = useState<string>('tts-1');
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Voice preview data - personalized messages for each voice
+  const voicePreviewMessages: Record<string, string> = {
+    alloy: "Hey there! I'm here whenever you need me.",
+    echo: "I'm listening. Take your time, no rush.",
+    fable: "Let's talk about what's on your mind today.",
+    onyx: "I'm here to support you through anything.",
+    nova: "Hi! I'm so glad you're here. How are you feeling?",
+    shimmer: "You're safe here. I'm here to listen.",
+  };
+
+  const previewVoice = async (voiceId: string) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] 🎵 Previewing voice: ${voiceId}`);
+    
+    // Stop any currently playing preview
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    
+    setPreviewingVoice(voiceId);
+    
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          text: voicePreviewMessages[voiceId],
+          voice: voiceId,
+          model: selectedModel,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate preview');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      previewAudioRef.current = audio;
+      
+      audio.onended = () => {
+        console.log(`[${new Date().toISOString()}] ✅ Preview completed`);
+        setPreviewingVoice(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        console.error(`[${new Date().toISOString()}] ❌ Preview playback failed`);
+        setPreviewingVoice(null);
+      };
+
+      await audio.play();
+      console.log(`[${new Date().toISOString()}] ▶️ Playing preview`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Preview error:`, error);
+      setError('Failed to preview voice');
+      setPreviewingVoice(null);
+    }
+  };
 
   // Load conversations and memories from localStorage on mount
   useEffect(() => {
@@ -1299,25 +1366,48 @@ export default function Home() {
                         { id: 'nova', name: 'Nova', desc: 'Bright, energetic female' },
                         { id: 'shimmer', name: 'Shimmer', desc: 'Soft, gentle female' },
                       ].map(voice => (
-                        <button
+                        <div
                           key={voice.id}
-                          onClick={() => setSelectedVoice(voice.id)}
-                          className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          className={`w-full p-3 rounded-lg border-2 transition-all ${
                             selectedVoice === voice.id
                               ? 'border-purple-500 bg-purple-50'
                               : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
+                          <div className="flex items-center justify-between gap-3">
+                            <button
+                              onClick={() => setSelectedVoice(voice.id)}
+                              className="flex-1 text-left"
+                            >
                               <p className="font-medium text-gray-800">{voice.name}</p>
                               <p className="text-xs text-gray-600">{voice.desc}</p>
+                            </button>
+                            
+                            <div className="flex items-center gap-2">
+                              {/* Preview Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  previewVoice(voice.id);
+                                }}
+                                disabled={previewingVoice === voice.id}
+                                className={`p-2 rounded-lg transition-all ${
+                                  previewingVoice === voice.id
+                                    ? 'bg-blue-500 text-white cursor-wait'
+                                    : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                                }`}
+                                title="Preview voice"
+                              >
+                                {previewingVoice === voice.id ? '🔊' : '▶️'}
+                              </button>
+                              
+                              {/* Selected Checkmark */}
+                              {selectedVoice === voice.id && (
+                                <span className="text-purple-600 text-xl">✓</span>
+                              )}
                             </div>
-                            {selectedVoice === voice.id && (
-                              <span className="text-purple-600 text-xl">✓</span>
-                            )}
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </div>
