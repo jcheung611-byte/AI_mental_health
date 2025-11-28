@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import VoiceButton from '@/components/VoiceButton';
+import ReactMarkdown from 'react-markdown';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Message = {
   id: string;
@@ -612,6 +614,42 @@ export default function Home() {
     setTimeout(() => setMemoryToast(null), 2000);
   };
 
+  const exportConversation = () => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] 📥 Exporting conversation data`);
+    
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      messages: messages.map(m => ({
+        role: m.role,
+        text: m.text,
+        timestamp: m.timestamp,
+      })),
+      memories: memories.map(m => ({
+        fact: m.fact,
+        timestamp: m.timestamp,
+      })),
+      settings: {
+        voice: selectedVoice,
+        model: selectedModel,
+        memoryEnabled: memoryEnabled,
+      },
+    };
+    
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ai-mental-health-conversation-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+    setMemoryToast('Conversation exported!');
+    setTimeout(() => setMemoryToast(null), 2000);
+  };
+
   const deleteMemory = (memoryId: string) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🧠 Deleting memory: ${memoryId}`);
@@ -1077,15 +1115,24 @@ export default function Home() {
                     ⚙️
                   </button>
                   
-                  {/* Clear Conversation Button */}
+                  {/* Export & Clear Buttons */}
                   {messages.length > 0 && (
-                    <button
-                      onClick={() => setShowClearModal(true)}
-                      className="px-3 py-1 text-xs rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-all font-medium"
-                      title="Clear all conversations"
-                    >
-                      Clear All Chats
-                    </button>
+                    <>
+                      <button
+                        onClick={exportConversation}
+                        className="px-3 py-1 text-xs rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-all font-medium"
+                        title="Export conversation & memories"
+                      >
+                        💾 Export
+                      </button>
+                      <button
+                        onClick={() => setShowClearModal(true)}
+                        className="px-3 py-1 text-xs rounded-lg bg-red-100 hover:bg-red-200 text-red-700 transition-all font-medium"
+                        title="Clear all conversations"
+                      >
+                        🗑️ Clear
+                      </button>
+                    </>
                   )}
                 </div>
                 
@@ -1093,6 +1140,15 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   {playingMessageId && (
                     <>
+                      {/* Stop Button */}
+                      <button
+                        onClick={stopAllAudio}
+                        className="px-2 py-1 rounded-lg font-medium text-sm transition-all bg-red-500 hover:bg-red-600 text-white"
+                        title="Stop playback"
+                      >
+                        ⏹️
+                      </button>
+                      
                       {/* Restart Button */}
                       <button
                         onClick={() => {
@@ -1201,22 +1257,44 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={`p-4 rounded-lg ${
-                    message.role === 'user' 
-                      ? 'bg-blue-50 border border-blue-200' 
-                      : 'bg-purple-50 border border-purple-200'
-                  }`}>
+                <AnimatePresence>
+                  {messages.map((message, index) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className={`p-4 rounded-lg ${
+                        message.role === 'user' 
+                          ? 'bg-blue-50 border border-blue-200' 
+                          : 'bg-purple-50 border border-purple-200'
+                      }`}
+                    >
                     <p className={`text-sm font-medium mb-2 ${message.role === 'user' ? 'text-blue-800' : 'text-purple-800'}`}>
                       {message.role === 'user' ? '🎯 You' : '🤖 AI'}
                     </p>
                     
-                    <p className="text-gray-700 whitespace-pre-wrap mb-3">
-                      {message.text}
+                    <div className="text-gray-700 mb-3 prose prose-sm max-w-none">
+                      {message.role === 'assistant' ? (
+                        <ReactMarkdown
+                          components={{
+                            p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
+                            li: ({node, ...props}) => <li className="ml-2" {...props} />,
+                          }}
+                        >
+                          {message.text}
+                        </ReactMarkdown>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{message.text}</p>
+                      )}
                       {message.role === 'assistant' && !message.audioUrl && message.text && (
                         <span className="inline-block w-2 h-4 bg-purple-600 ml-1 animate-pulse"></span>
                       )}
-                    </p>
+                    </div>
                     
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-400">
@@ -1257,8 +1335,9 @@ export default function Home() {
                         </button>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
+                </AnimatePresence>
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -1314,15 +1393,24 @@ export default function Home() {
       </main>
 
       {/* Clear Conversation Modal */}
-      {showClearModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => setShowClearModal(false)}
-        >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl p-6 max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {showClearModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setShowClearModal(false)}
           >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-md mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="text-center">
               <div className="text-5xl mb-4">🗑️</div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -1346,20 +1434,30 @@ export default function Home() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Settings Modal */}
-      {showSettingsModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => setShowSettingsModal(false)}
-        >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg mx-4 w-full"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {showSettingsModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setShowSettingsModal(false)}
           >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg mx-4 w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -1533,19 +1631,28 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Memory Toast Notification */}
-      {memoryToast && (
-        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in-out">
-          <div className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
-            <span>💾</span>
-            <span className="font-medium">{memoryToast}</span>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {memoryToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50"
+          >
+            <div className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
+              <span>💾</span>
+              <span className="font-medium">{memoryToast}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
