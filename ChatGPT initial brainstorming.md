@@ -390,6 +390,205 @@ if you send me back what stack Cursor suggests or what repo layout it gives you,
 
 ---
 
+# MVP DEFINITION & SCOPE
+
+## 🎯 The Decision (Nov 28, 2025)
+
+**We're building:** The Venter (Story A)
+
+**Target User:** People who need to vent about stress/life (me!)
+
+**Core Use Case:**
+"I'm stressed about work. I open the app, hit record, and vent for 10 minutes. The AI responds with empathy and remembers context from previous rants. Over time, I can see I'm getting better."
+
+---
+
+## 🚀 MVP Scope (Ship in 2 Weeks)
+
+### Core Features (Must Have):
+1. **Unlimited voice recording** - No 5-minute limit, vent as long as needed
+2. **Live transcription** - See your words as you speak
+3. **AI conversation** - Warm, empathetic responses (mental health focused)
+4. **Persistent memory** - Remembers you across sessions
+5. **Audio archive** - Keep all your rants forever (Supabase Storage)
+6. **Playback** - Listen to old rants
+
+### Nice-to-Have (If Time):
+7. **Search transcripts** - Find old topics
+8. **Basic stats** - Message count, total rant time
+9. **Export** - Download your data
+
+### NOT in MVP (Phase 2+):
+- ❌ Daily prompts
+- ❌ Structured reflection
+- ❌ Breathing exercises
+- ❌ Advanced analytics dashboard
+- ❌ Voice tone analysis
+- ❌ Premium features
+
+---
+
+## 💎 Key Differentiators vs ChatGPT
+
+### ChatGPT Voice (What Exists Today):
+```
+✅ Voice input/output
+✅ Natural conversation
+✅ Smart AI responses
+❌ Conversations disappear after session
+❌ No audio archive
+❌ Generic AI (not mental health focused)
+❌ No pattern tracking
+❌ No progress visibility
+❌ Text-first with voice option
+```
+
+### Your App (What Makes It Different):
+
+#### **Differentiator #1: Persistent Voice Archive** 🎤
+```
+ChatGPT: Conversation lost when you close it
+Your App: Every rant saved forever, replayable
+
+Why it matters:
+- Emotional: Hear yourself from 3 months ago
+- Accountability: Track your journey
+- Reflection: "Wow, I've grown"
+- Lock-in: Can't leave without losing archive
+```
+
+#### **Differentiator #2: Mental Health Focused** 🧠
+```
+ChatGPT: General purpose AI
+Your App: Built specifically for emotional processing
+
+Differences:
+- Personality: Grounding, validating, therapeutic tone
+- Prompting: Understands venting vs problem-solving
+- Safety: Mental health crisis guardrails
+- Context: Remembers your stress triggers
+```
+
+#### **Differentiator #3: Longitudinal Tracking** 📊
+```
+ChatGPT: Each conversation is isolated
+Your App: Sees patterns across weeks/months
+
+Future features:
+- "You mention 'work stress' 40% less this month"
+- "Your rants are getting shorter (good sign!)"
+- "You vent most on Mondays - work deadline pattern?"
+- Visual progress: Stress trends over time
+```
+
+#### **Differentiator #4: Voice-First UX** 🎙️
+```
+ChatGPT: Text app with voice feature
+Your App: Voice app with text fallback
+
+UX differences:
+- Big mic button (primary action)
+- Designed for 10-30 min rants (not short queries)
+- No typing required
+- Audio-centric interface
+```
+
+#### **Differentiator #5: Memory Across Sessions** 💾
+```
+ChatGPT: Remembers within conversation only
+Your App: Persistent memory across all sessions
+
+Examples:
+- Remembers your stress triggers
+- Recalls past rants about similar topics
+- "You mentioned this deadline last week too"
+- Builds relationship over time
+```
+
+---
+
+## 🎯 The Hook (What Gets People to Try It)
+
+### Immediate Value (Day 1):
+```
+"Vent for as long as you want. 
+Your audio is saved forever.
+AI responds with empathy."
+
+→ Better than ChatGPT because: Audio archive + unlimited time
+```
+
+### Retention (Week 2):
+```
+"Listen to your rant from last week.
+Notice how you sound less stressed now?"
+
+→ Emotional feedback loop ChatGPT can't provide
+```
+
+### Lock-in (Month 3):
+```
+"You have 20 rants saved.
+See your stress patterns over time."
+
+→ Can't switch to ChatGPT without losing everything
+```
+
+---
+
+## 🚀 The Vision (Where This Goes)
+
+### Phase 1: The Venter (Now - Month 2)
+```
+Core: Voice venting with AI + audio archive
+Differentiator: Persistent audio + mental health focus
+Goal: 10 people use it regularly
+```
+
+### Phase 2: The Tracker (Month 3-4)
+```
+Add: Pattern recognition & analytics
+Features: "Stress mentions down 40%!"
+Differentiator: Longitudinal insights
+Goal: People can't imagine living without it
+```
+
+### Phase 3: The Companion (Month 5-6)
+```
+Add: Premium features & polish
+Features: Voice tone analysis, advanced insights
+Differentiator: Full mental health tracking suite
+Goal: $1k MRR from premium users
+```
+
+---
+
+## 💡 Why This Can Win vs ChatGPT
+
+**ChatGPT's Advantage:**
+- Better general knowledge
+- More capabilities (code, math, etc.)
+- Larger user base
+- Brand recognition
+
+**Your Advantage:**
+- Specialized for mental health venting
+- Persistent audio archive (they'll never add this)
+- Longitudinal tracking (outside their scope)
+- Voice-first UX (they're text-first)
+- Builds over time (they're session-based)
+
+**The key insight:**
+You're not competing with ChatGPT on breadth.
+You're competing on DEPTH for one specific use case.
+
+"ChatGPT is a Swiss Army knife.
+Your app is the best knife for one job: venting."
+
+Riches in niches. 🎯
+
+---
+
 # APPENDIX: Product Strategy & Roadmap
 
 ## 🎯 Mental Health Tracking - The Key Differentiator
