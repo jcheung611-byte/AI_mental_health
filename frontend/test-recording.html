@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Audio Recording</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 20px 40px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .recording { background-color: #ff4444; color: white; }
+        .ready { background-color: #4444ff; color: white; }
+        #status { margin: 20px 0; padding: 10px; background: #f0f0f0; }
+        #audioInfo { margin: 20px 0; padding: 10px; background: #e8f5e9; }
+        audio { width: 100%; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🎤 Audio Recording Diagnostic Test</h1>
+    
+    <div id="status">Status: Ready</div>
+    
+    <button id="recordBtn" class="ready" onmousedown="startRecording()" onmouseup="stopRecording()">
+        Hold to Record
+    </button>
+    
+    <div id="audioInfo"></div>
+    
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let stream;
+        let startTime;
+
+        async function startRecording() {
+            console.log('🎤 Starting recording...');
+            document.getElementById('status').textContent = 'Status: Requesting microphone access...';
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('✅ Microphone access granted');
+                
+                // Log stream info
+                const audioTrack = stream.getAudioTracks()[0];
+                const settings = audioTrack.getSettings();
+                console.log('Audio track settings:', settings);
+                
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: 'audio/webm'
+                });
+                
+                console.log('MediaRecorder state:', mediaRecorder.state);
+                console.log('MediaRecorder mimeType:', mediaRecorder.mimeType);
+                
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    console.log('📦 Data chunk received:', event.data.size, 'bytes');
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const duration = (Date.now() - startTime) / 1000;
+                    console.log('⏱️ Recording duration:', duration, 'seconds');
+                    
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    console.log('✅ Audio blob created:', audioBlob.size, 'bytes');
+                    
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    const info = `
+                        <h3>Recording Complete!</h3>
+                        <p><strong>Duration:</strong> ${duration.toFixed(2)} seconds</p>
+                        <p><strong>Blob Size:</strong> ${audioBlob.size} bytes (${(audioBlob.size / 1024).toFixed(2)} KB)</p>
+                        <p><strong>Blob Type:</strong> ${audioBlob.type}</p>
+                        <p><strong>Chunks Collected:</strong> ${audioChunks.length}</p>
+                        <p><strong>Status:</strong> ${audioBlob.size > 1000 ? '✅ Good size!' : '❌ Too small - might be a problem'}</p>
+                        <audio controls src="${audioUrl}"></audio>
+                        <br><button onclick="downloadAudio()">Download Audio File</button>
+                    `;
+                    
+                    document.getElementById('audioInfo').innerHTML = info;
+                    document.getElementById('status').textContent = 'Status: Recording saved - check details above';
+                    
+                    // Save blob for download
+                    window.lastBlob = audioBlob;
+                    
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                startTime = Date.now();
+                mediaRecorder.start();
+                document.getElementById('recordBtn').className = 'recording';
+                document.getElementById('recordBtn').textContent = 'Recording... (Release to Stop)';
+                document.getElementById('status').textContent = 'Status: 🔴 Recording...';
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('status').textContent = 'Status: Error - ' + error.message;
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                console.log('⏹️ Stopping recording...');
+                mediaRecorder.stop();
+                document.getElementById('recordBtn').className = 'ready';
+                document.getElementById('recordBtn').textContent = 'Hold to Record';
+            }
+        }
+        
+        function downloadAudio() {
+            if (window.lastBlob) {
+                const url = URL.createObjectURL(window.lastBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'test-recording.webm';
+                a.click();
+            }
+        }
+    </script>
+</body>
+</html>
+
+
