@@ -842,7 +842,7 @@ export default function Home() {
       if (extractedMemories && extractedMemories.length > 0) {
         // Add new memories with IDs and timestamps
         const newMemories = extractedMemories.map((mem: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(),
           fact: mem.fact,
           timestamp: new Date(),
         }));
@@ -886,7 +886,7 @@ export default function Home() {
 
     try {
       // Add user message to conversation
-      const userMessageId = `user-${Date.now()}`;
+      const userMessageId = crypto.randomUUID();
       const userMessage: Message = {
         id: userMessageId,
         role: 'user',
@@ -929,7 +929,7 @@ export default function Home() {
       console.log(`[${new Date().toISOString()}] ✅ Chat response received:`, chatData.text);
       
       const fullText = chatData.text;
-      const assistantMessageId = `assistant-${Date.now()}`;
+      const assistantMessageId = crypto.randomUUID();
       
       // Add AI message with empty text initially (will stream in)
       const assistantMessage: Message = {
@@ -1099,7 +1099,7 @@ export default function Home() {
       }
       
       // Add user message to conversation
-      const userMessageId = `user-${Date.now()}`;
+      const userMessageId = crypto.randomUUID();
       const userMessage: Message = {
         id: userMessageId,
         role: 'user',
@@ -1144,7 +1144,7 @@ export default function Home() {
       console.log(`[${new Date().toISOString()}] ✅ Chat response received:`, chatData.text);
       
       const fullText = chatData.text;
-      const assistantMessageId = `assistant-${Date.now()}`;
+      const assistantMessageId = crypto.randomUUID();
       
       // Add AI message with empty text initially (will stream in)
       const assistantMessage: Message = {
