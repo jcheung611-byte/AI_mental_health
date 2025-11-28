@@ -31,3 +31,4 @@ v0 Complete - All phases implemented and working:
 
 Test the full conversation loop and iterate on the personality prompt based on real interactions.
 
+# Trigger Vercel rebuild
