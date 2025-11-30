@@ -55,7 +55,7 @@
 
 ### **Nov 30, 2025**
 
-#### 🎤 Hybrid Recording - Step 1: Audio Chunking (Commit: TBD)
+#### 🎤 Hybrid Recording - Step 1: Audio Chunking (Commit: 8aae00b)
 **Phase:** Phase 1 - Foundation  
 **Feature:** Hybrid Recording System  
 **Type:** Feature
