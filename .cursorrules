@@ -1,0 +1,116 @@
+# Project Rules: Mental Health Companion
+
+## 📋 Update Protocol (CRITICAL)
+
+### After EVERY code change:
+1. **Update PROGRESS_TRACKER.md** with:
+   - Date
+   - Commit hash (after committing)
+   - Current phase
+   - Feature being worked on
+   - Change type (Feature/Fix/Refactor/Documentation)
+   - Brief description of changes
+   - Rationale (why this change?)
+   - Files affected
+
+2. **Git commit** with descriptive message:
+   - Use emoji prefixes (✨ feature, 🐛 fix, 🎨 style, 📝 docs, ♻️ refactor)
+   - Clear description of what changed
+   - Why it changed (if not obvious)
+
+3. **Push to GitHub** for Vercel auto-deploy
+
+## 🎯 Development Principles
+
+1. **One Step at a Time**
+   - Make small, testable changes
+   - User tests on live Vercel deployment after each push
+   - Validate before moving to next feature
+
+2. **Progress Over Perfection**
+   - Ship working features quickly
+   - Iterate based on real usage
+   - Don't over-engineer
+
+3. **Voice-First Philosophy**
+   - Design for voice, support text
+   - Big mic button as hero element
+   - Text always available as alternative
+
+4. **Emotional Connection First**
+   - Prioritize personalization and relationship building
+   - Stats can wait, emotional stickiness can't
+   - Mode selector and onboarding in Phase 1
+
+5. **Build for Yourself**
+   - Dogfood everything
+   - If you wouldn't use it, don't ship it
+   - Real venting sessions = best validation
+
+## 🚫 What NOT to Do
+
+1. **Don't skip the tracker**
+   - Every commit = tracker update
+   - No exceptions
+
+2. **Don't build multiple features at once**
+   - One feature at a time
+   - Complete → Test → Next
+
+3. **Don't over-scope**
+   - Stick to current phase
+   - Resist adding "just one more thing"
+   - Future explorations go in backlog
+
+4. **Don't break the live site**
+   - Test locally first when possible
+   - Small changes = easier to debug
+   - Vercel preview deployments for big changes
+
+## 📁 File Organization
+
+### Key Files:
+- `VISION_ROADMAP_v11.30_FINAL.md` - North star vision
+- `PROGRESS_TRACKER.md` - Update with every change
+- `frontend/pages/index.tsx` - Main app logic
+- `frontend/components/VoiceButton.tsx` - Recording component
+- `frontend/pages/api/` - Backend API routes
+
+### Update Frequency:
+- **Every commit:** PROGRESS_TRACKER.md
+- **Weekly:** Check alignment with VISION_ROADMAP
+- **After phase:** Reflect on what worked/didn't
+
+## 🎨 Code Style
+
+1. **TypeScript:** Strict typing where possible
+2. **Comments:** Explain WHY, not WHAT
+3. **Functions:** Small, single-purpose
+4. **State:** Keep it simple, useState for now
+5. **UI:** Clean, warm, cozy aesthetic
+
+## ✅ Testing Protocol
+
+1. **Local:** Test basic functionality
+2. **Vercel:** User tests live deployment
+3. **Dogfood:** Use it yourself for real venting
+4. **Phase validation:** Complete success criteria before moving on
+
+## 🔄 Git Workflow
+
+1. **Main branch:** Always deployable
+2. **Feature branches:** For experiments (optional for solo dev)
+3. **Commit often:** Small, logical commits
+4. **Descriptive messages:** Future you will thank you
+
+## 🎯 Current Focus
+
+**Phase:** Phase 1 - Foundation + Relationship Building  
+**Feature:** Hybrid Recording System  
+**Goal:** Unlimited venting + live transcription  
+**Timeline:** 2-4 weeks (flexible)
+
+---
+
+*These rules keep us on track, focused, and shipping quality features!*
+
