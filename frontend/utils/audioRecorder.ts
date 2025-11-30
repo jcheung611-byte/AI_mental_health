@@ -117,4 +117,28 @@ export class AudioRecorder {
   isRecording(): boolean {
     return this.mediaRecorder?.state === 'recording';
   }
+
+  // Get accumulated chunks as a blob (for live transcription)
+  // This does NOT stop recording - it just extracts what we have so far
+  async getChunk(): Promise<Blob | null> {
+    if (!this.mediaRecorder || this.audioChunks.length === 0) {
+      console.log('No chunks available yet');
+      return null;
+    }
+
+    // Create blob from current chunks
+    const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
+    const chunk = new Blob([...this.audioChunks], { type: mimeType });
+    
+    console.log('Created chunk blob:', {
+      size: chunk.size,
+      type: chunk.type,
+      chunksUsed: this.audioChunks.length
+    });
+
+    // IMPORTANT: Don't clear chunks! We need them for the final audio
+    // The final stopRecording() will use ALL chunks accumulated
+    
+    return chunk;
+  }
 }

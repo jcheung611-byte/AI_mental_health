@@ -3,20 +3,24 @@ import React, { useState } from 'react';
 type VoiceButtonProps = {
   onAudioRecorded: (audioBlob: Blob) => void;
   onRecordingStart?: () => void;
+  onChunkRecorded?: (chunk: Blob) => void; // NEW: For live transcription
   disabled?: boolean;
 };
 
-export default function VoiceButton({ onAudioRecorded, onRecordingStart, disabled }: VoiceButtonProps) {
+export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunkRecorded, disabled }: VoiceButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [recorder, setRecorder] = useState<any>(null);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [chunkIntervalId, setChunkIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<number>(0);
   
-  // Max recording duration (5 minutes = 300 seconds)
-  // This prevents files from being too large for Vercel (4.5MB limit)
-  const MAX_DURATION_SECONDS = 300;
+  // Chunking for live transcription (30 seconds per chunk)
+  const CHUNK_DURATION_MS = 30 * 1000; // 30 seconds
+  
+  // No more max duration! Effectively unlimited recording
+  // (We'll handle large files differently via chunking + Supabase Storage)
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -71,19 +75,26 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
 
       // Start duration counter
       const id = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 0.1;
-          
-          // Auto-stop at max duration
-          if (newDuration >= MAX_DURATION_SECONDS) {
-            console.log(`[${new Date().toISOString()}] ⏱️ Max duration reached, auto-stopping`);
-            stopRecording();
-          }
-          
-          return newDuration;
-        });
+        setDuration(prev => prev + 0.1);
       }, 100);
       setIntervalId(id);
+      
+      // Start chunking timer for live transcription
+      if (onChunkRecorded) {
+        const chunkId = setInterval(async () => {
+          console.log(`[${new Date().toISOString()}] 🔄 Chunk interval triggered - getting audio chunk`);
+          try {
+            const chunk = await newRecorder.getChunk();
+            if (chunk && chunk.size > 0) {
+              console.log(`[${new Date().toISOString()}] ✅ Chunk extracted:`, chunk.size, 'bytes');
+              onChunkRecorded(chunk);
+            }
+          } catch (error) {
+            console.error(`[${new Date().toISOString()}] ❌ Failed to get chunk:`, error);
+          }
+        }, CHUNK_DURATION_MS);
+        setChunkIntervalId(chunkId);
+      }
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Failed to start recording:`, error);
       alert('Could not access microphone. Please check permissions and try again.');
@@ -124,25 +135,10 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
 
     try {
       const audioBlob = await recorder.stopRecording();
-      console.log(`[${new Date().toISOString()}] 📦 Audio blob created:`, audioBlob.size, 'bytes');
+      const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(1);
+      console.log(`[${new Date().toISOString()}] 📦 Audio blob created:`, sizeMB, 'MB (', audioBlob.size, 'bytes)');
       
-      // Check file size (4.5 MB limit for Vercel free tier)
-      const maxSizeBytes = 4.5 * 1024 * 1024; // 4.5 MB
-      if (audioBlob.size > maxSizeBytes) {
-        const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(1);
-        console.error(`[${new Date().toISOString()}] ❌ Audio file too large:`, sizeMB, 'MB');
-        alert(`Recording too long! (${sizeMB} MB)\n\nPlease record messages under 5 minutes.\nTry breaking your message into shorter parts.`);
-        
-        setIsRecording(false);
-        setRecorder(null);
-        
-        if (intervalId) {
-          clearInterval(intervalId);
-          setIntervalId(null);
-        }
-        return;
-      }
-      
+      // Clear intervals
       setIsRecording(false);
       setRecorder(null);
       
@@ -150,8 +146,13 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
         clearInterval(intervalId);
         setIntervalId(null);
       }
+      
+      if (chunkIntervalId) {
+        clearInterval(chunkIntervalId);
+        setChunkIntervalId(null);
+      }
 
-      console.log(`[${new Date().toISOString()}] 📤 Sending audio to parent component`);
+      console.log(`[${new Date().toISOString()}] 📤 Sending complete audio to parent component`);
       onAudioRecorded(audioBlob);
     } catch (error: any) {
       console.error(`[${new Date().toISOString()}] ❌ Failed to stop recording:`, error);
@@ -161,6 +162,11 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
       if (intervalId) {
         clearInterval(intervalId);
         setIntervalId(null);
+      }
+      
+      if (chunkIntervalId) {
+        clearInterval(chunkIntervalId);
+        setChunkIntervalId(null);
       }
       
       // Show user-friendly error
@@ -190,23 +196,19 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
       
       {isRecording && (
         <div className="flex flex-col items-center gap-1">
-          <div className={`text-sm font-mono font-semibold ${
-            duration > MAX_DURATION_SECONDS * 0.8 ? 'text-red-600' : 'text-gray-600'
-          }`}>
-            Recording: {duration.toFixed(1)}s / {MAX_DURATION_SECONDS}s
+          <div className="text-sm font-mono font-semibold text-gray-600">
+            Recording: {Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}
           </div>
-          {duration > MAX_DURATION_SECONDS * 0.8 && (
-            <div className="text-xs text-red-600 font-semibold animate-pulse">
-              ⚠️ Approaching max length - wrap it up!
-            </div>
-          )}
+          <div className="text-xs text-gray-500">
+            ✨ Unlimited length - take your time
+          </div>
         </div>
       )}
       
       <div className="text-xs text-gray-500 text-center max-w-xs">
         {isRecording 
-          ? '🔴 Recording in progress - Click to stop and send' 
-          : 'Click to start recording (max 5 minutes)'
+          ? '🔴 Recording in progress - Click to stop' 
+          : 'Click to start recording (unlimited length!)'
         }
       </div>
     </div>

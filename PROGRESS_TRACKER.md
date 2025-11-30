@@ -55,6 +55,44 @@
 
 ### **Nov 30, 2025**
 
+#### 🎤 Hybrid Recording - Step 1: Audio Chunking (Commit: TBD)
+**Phase:** Phase 1 - Foundation  
+**Feature:** Hybrid Recording System  
+**Type:** Feature
+
+**Changes:**
+- **VoiceButton.tsx:**
+  - Added `onChunkRecorded` prop for live chunk processing
+  - Added chunk interval timer (30-second chunks)
+  - Removed 5-minute max duration limit (now effectively unlimited!)
+  - Updated UI: Shows M:SS format, "unlimited length" messaging
+  - Clear chunk interval on stop/error
+  
+- **audioRecorder.ts:**
+  - Added `getChunk()` method to extract accumulated audio
+  - Returns blob without stopping recording
+  - Keeps all chunks for final audio (doesn't clear on chunk extraction)
+
+**Rationale:**
+- Enable unlimited venting (core differentiator!)
+- Foundation for live transcription
+- Prepare for Supabase Storage upload (handles large files)
+- Better UX (no artificial time limits)
+
+**Technical Details:**
+- Chunks every 30 seconds via setInterval
+- getChunk() creates blob from accumulated data
+- Full audio buffer maintained for final upload
+- No file size checks (handled differently now)
+
+**Files:**
+- `frontend/components/VoiceButton.tsx`
+- `frontend/utils/audioRecorder.ts`
+
+**Next Step:** Wire up chunk processing in index.tsx for live transcription
+
+---
+
 #### ✨ Vision Revision (Commit: cb90b06)
 **Phase:** Planning  
 **Feature:** Vision & Roadmap  
