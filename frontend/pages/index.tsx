@@ -1080,7 +1080,7 @@ export default function Home() {
       if (!transcribeResponse.ok) {
         // Check for file too large error (413)
         if (transcribeResponse.status === 413) {
-          throw new Error('Recording too long! Audio file is too large.\n\nPlease record messages under 5 minutes.\n\nTip: Try breaking your message into shorter parts.');
+          throw new Error('⚠️ Long recording detected!\n\nWe\'re working on unlimited venting support.\nFor now, please keep recordings under 5 minutes.\n\n🚧 Live transcription for longer recordings coming soon!');
         }
         
         const errorData = await transcribeResponse.json().catch(() => ({}));
