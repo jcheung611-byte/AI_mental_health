@@ -93,6 +93,48 @@
 
 ---
 
+#### ✨ Hybrid Recording - Step 2: Live Transcription (Commit: TBD)
+**Phase:** Phase 1 - Foundation  
+**Feature:** Hybrid Recording System  
+**Type:** Feature
+
+**Changes:**
+- **index.tsx:**
+  - Added `liveTranscript` state for real-time transcription display
+  - Added `handleChunkRecorded()` function to process 30-second chunks
+  - Modified `handleAudioRecorded()` to use live transcript (hybrid approach)
+  - Fallback to full audio transcription if live transcript empty
+  - Added live transcription preview UI (animated blue box)
+  - Shows word count and updates in real-time
+  - Stores full audio blob for future Supabase upload
+
+**Rationale:**
+- CRITICAL: Makes unlimited recording actually work!
+- Chunks transcribed as recording happens (no 413 errors)
+- User sees their words appear live (better UX)
+- Fallback ensures reliability
+- Hybrid: live chunks + full audio saved
+
+**Technical Details:**
+- Chunks sent to `/api/transcribe` every 30 seconds
+- Transcripts appended to `liveTranscript` state
+- Full audio blob stored in ref for later upload
+- Silent failures on chunk errors (don't interrupt recording)
+- Shows word count and animated preview
+
+**User Experience:**
+- ✅ Record for unlimited time
+- ✅ See words appear as you speak
+- ✅ No more 413 errors for long recordings
+- ✅ Full audio preserved for playback later
+
+**Files:**
+- `frontend/pages/index.tsx`
+
+**Next Step:** Upload full audio to Supabase Storage (Step 3)
+
+---
+
 #### ✨ Vision Revision (Commit: cb90b06)
 **Phase:** Planning  
 **Feature:** Vision & Roadmap  
