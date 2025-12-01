@@ -1203,7 +1203,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          message: transcribeData.text,
+          message: finalTranscript,
           conversationHistory: conversationHistory,
           memories: memories,
         }),
@@ -1292,7 +1292,7 @@ export default function Home() {
       console.log(`[${new Date().toISOString()}] ✅ Message added to conversation, ready for playback`);
 
       // Extract and save memories (async, don't await) - only from user message
-      extractAndSaveMemories(transcribeData.text).catch(err => 
+      extractAndSaveMemories(finalTranscript).catch(err => 
         console.error('Memory extraction failed:', err)
       );
     } catch (error: any) {
