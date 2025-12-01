@@ -93,7 +93,7 @@
 
 ---
 
-#### ✨ Hybrid Recording - Step 2: Live Transcription (Commit: TBD)
+#### ✨ Hybrid Recording - Step 2: Live Transcription (Commit: 7a8208a)
 **Phase:** Phase 1 - Foundation  
 **Feature:** Hybrid Recording System  
 **Type:** Feature
