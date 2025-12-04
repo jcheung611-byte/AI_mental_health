@@ -1,7 +1,7 @@
 # 🚀 Progress Tracker
 **Project:** Mental Health Companion  
 **Started:** November 28, 2025  
-**Last Updated:** November 30, 2025
+**Last Updated:** December 4, 2025
 
 ---
 
@@ -155,6 +155,70 @@
 
 **Files:**
 - `frontend/pages/index.tsx`
+
+---
+
+#### ✨ Hybrid Recording - Step 3: Faster Chunks + Final Chunk Fix (Dec 4, 2025)
+**Phase:** Phase 1 - Foundation  
+**Feature:** Hybrid Recording System  
+**Type:** Feature + Bug Fix (Critical)
+
+**Changes:**
+
+**1. Faster Live Transcription (30s → 5s chunks):**
+- Changed `CHUNK_DURATION_MS` from 30s to 5s
+- Near real-time feel (updates every 5 seconds)
+- Same cost (Whisper charges per audio duration, not per call!)
+
+**2. CRITICAL BUG FIX: Final Chunk Missing:**
+- Previous issue: When user stopped recording between intervals, the last <5s of audio was lost!
+- Added `getNewChunks()` method: Only transcribes NEW audio since last call (no re-transcription!)
+- Added `getFinalChunk()` method: Captures remaining audio when stopping
+- `handleAudioRecorded()` now transcribes final chunk before sending message
+- `VoiceButton` now passes `finalChunk` to parent component
+
+**3. Tab Visibility Handling:**
+- Added `visibilitychange` event listener
+- Recording continues when tab is hidden (swipe to another tab)
+- Shows "Recording continues in background" message when tab hidden
+- Logs visibility changes for debugging
+
+**Technical Details:**
+- `audioRecorder.ts`: Added `lastChunkIndex` tracking
+- `getNewChunks()`: Returns only chunks since last call (incremental)
+- `getFinalChunk()`: Returns remaining unsent chunks
+- `VoiceButton`: Changed callback signature to include `finalChunk`
+- `index.tsx`: Transcribes `finalChunk` before processing message
+
+**Before/After:**
+```
+BEFORE (30s chunks, missing final audio):
+0:00 - Start
+0:30 - Chunk 1 ✅
+1:00 - Chunk 2 ✅
+1:45 - Stop → Last 45s LOST! ❌
+
+AFTER (5s chunks, captures everything):
+0:00 - Start
+0:05 - Chunk 1 ✅
+0:10 - Chunk 2 ✅
+...
+1:40 - Chunk 20 ✅
+1:45 - Stop → Final 5s captured ✅
+```
+
+**Files:**
+- `frontend/utils/audioRecorder.ts`
+- `frontend/components/VoiceButton.tsx`
+- `frontend/pages/index.tsx`
+
+**User Experience:**
+- ✅ Live transcription updates every 5 seconds (feels near-real-time!)
+- ✅ NO MORE MISSING AUDIO at the end
+- ✅ Recording continues in background tabs
+- ✅ Same cost as before (Whisper charges by audio duration)
+
+**Next Step:** Test with 10+ minute recording to validate
 
 ---
 

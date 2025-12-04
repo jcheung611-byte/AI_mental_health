@@ -1095,7 +1095,7 @@ export default function Home() {
     }
   };
 
-  const handleAudioRecorded = async (blob: Blob) => {
+  const handleAudioRecorded = async (blob: Blob, finalChunk: Blob | null) => {
     const timestamp = new Date().toISOString();
     const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
     console.log(`[${timestamp}] 📥 AUDIO RECORDED - handleAudioRecorded called`, {
@@ -1104,6 +1104,8 @@ export default function Home() {
       blobType: blob.type,
       hasLiveTranscript: !!liveTranscript,
       liveTranscriptLength: liveTranscript.length,
+      hasFinalChunk: !!finalChunk,
+      finalChunkSize: finalChunk?.size || 0,
     });
     
     // Store full audio blob for later upload to Supabase Storage
@@ -1123,10 +1125,39 @@ export default function Home() {
     try {
       let finalTranscript = liveTranscript.trim();
       
+      // CRITICAL: Transcribe the final chunk (remaining audio after last interval)
+      if (finalChunk && finalChunk.size > 100) {
+        console.log(`[${timestamp}] 📝 Transcribing final chunk (${finalChunk.size} bytes)...`);
+        setStatus('Transcribing final audio...');
+        
+        try {
+          const formData = new FormData();
+          formData.append('audio', finalChunk, 'finalchunk.webm');
+          
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const { text } = await response.json();
+            if (text && text.trim()) {
+              console.log(`[${timestamp}] ✅ Final chunk transcribed:`, text);
+              finalTranscript = finalTranscript ? `${finalTranscript} ${text}` : text;
+            }
+          } else {
+            console.warn(`[${timestamp}] ⚠️ Final chunk transcription failed, continuing with existing transcript`);
+          }
+        } catch (error) {
+          console.warn(`[${timestamp}] ⚠️ Final chunk transcription error:`, error);
+          // Continue with existing transcript - don't fail the whole flow
+        }
+      }
+      
       // If we have live transcript from chunks, use it!
       if (finalTranscript) {
-        console.log(`[${timestamp}] ✨ Using live transcript (${finalTranscript.length} chars)`);
-        setStatus('Using live transcription...');
+        console.log(`[${timestamp}] ✨ Using complete transcript (${finalTranscript.length} chars)`);
+        setStatus('Processing your message...');
       } else {
         // Fallback: transcribe the full audio (for short recordings or if chunking failed)
         console.log(`[${timestamp}] 📝 No live transcript, transcribing full audio (${sizeMB} MB)`);

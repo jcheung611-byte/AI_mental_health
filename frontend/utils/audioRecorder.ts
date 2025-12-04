@@ -5,6 +5,7 @@ export class AudioRecorder {
   private audioChunks: Blob[] = [];
   private stream: MediaStream | null = null;
   private startTime: number = 0;
+  private lastChunkIndex: number = 0; // Track which chunks have been sent for transcription
 
   async startRecording(): Promise<void> {
     try {
@@ -25,6 +26,7 @@ export class AudioRecorder {
       
       this.mediaRecorder = new MediaRecorder(this.stream, options);
       this.audioChunks = [];
+      this.lastChunkIndex = 0; // Reset chunk tracking
       this.startTime = Date.now();
 
       this.mediaRecorder.ondataavailable = (event) => {
@@ -118,26 +120,84 @@ export class AudioRecorder {
     return this.mediaRecorder?.state === 'recording';
   }
 
-  // Get accumulated chunks as a blob (for live transcription)
-  // This does NOT stop recording - it just extracts what we have so far
+  // Get NEW chunks since last call (for incremental live transcription)
+  // This does NOT stop recording - it just extracts what's new since last call
+  async getNewChunks(): Promise<Blob | null> {
+    if (!this.mediaRecorder) {
+      console.log('No media recorder');
+      return null;
+    }
+
+    // Get only the NEW chunks since last call
+    const newChunks = this.audioChunks.slice(this.lastChunkIndex);
+    
+    if (newChunks.length === 0) {
+      console.log('No new chunks since last call');
+      return null;
+    }
+
+    // Update the index so next call only gets newer chunks
+    const previousIndex = this.lastChunkIndex;
+    this.lastChunkIndex = this.audioChunks.length;
+
+    // Create blob from NEW chunks only
+    const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
+    const chunk = new Blob(newChunks, { type: mimeType });
+    
+    console.log('Created NEW chunk blob:', {
+      size: chunk.size,
+      type: chunk.type,
+      newChunksUsed: newChunks.length,
+      chunkRange: `${previousIndex} to ${this.lastChunkIndex}`,
+      totalChunks: this.audioChunks.length
+    });
+    
+    return chunk;
+  }
+
+  // Get remaining unsent chunks (for final transcription on stop)
+  async getFinalChunk(): Promise<Blob | null> {
+    if (!this.mediaRecorder) {
+      console.log('No media recorder');
+      return null;
+    }
+
+    // Get any chunks that haven't been sent yet
+    const remainingChunks = this.audioChunks.slice(this.lastChunkIndex);
+    
+    if (remainingChunks.length === 0) {
+      console.log('No remaining chunks to transcribe');
+      return null;
+    }
+
+    const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
+    const chunk = new Blob(remainingChunks, { type: mimeType });
+    
+    console.log('Created FINAL chunk blob:', {
+      size: chunk.size,
+      type: chunk.type,
+      remainingChunksUsed: remainingChunks.length,
+      chunkRange: `${this.lastChunkIndex} to ${this.audioChunks.length}`
+    });
+    
+    return chunk;
+  }
+
+  // Legacy method - get ALL chunks (for backward compatibility)
   async getChunk(): Promise<Blob | null> {
     if (!this.mediaRecorder || this.audioChunks.length === 0) {
       console.log('No chunks available yet');
       return null;
     }
 
-    // Create blob from current chunks
     const mimeType = this.mediaRecorder.mimeType || 'audio/webm';
     const chunk = new Blob([...this.audioChunks], { type: mimeType });
     
-    console.log('Created chunk blob:', {
+    console.log('Created chunk blob (ALL):', {
       size: chunk.size,
       type: chunk.type,
       chunksUsed: this.audioChunks.length
     });
-
-    // IMPORTANT: Don't clear chunks! We need them for the final audio
-    // The final stopRecording() will use ALL chunks accumulated
     
     return chunk;
   }
