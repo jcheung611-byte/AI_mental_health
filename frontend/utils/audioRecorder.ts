@@ -156,10 +156,20 @@ export class AudioRecorder {
   }
 
   // Get remaining unsent chunks (for final transcription on stop)
+  // CRITICAL: Must call requestData() first to flush any buffered audio!
   async getFinalChunk(): Promise<Blob | null> {
     if (!this.mediaRecorder) {
       console.log('No media recorder');
       return null;
+    }
+
+    // CRITICAL FIX: Force the MediaRecorder to flush its internal buffer!
+    // Without this, the last bit of audio might still be buffered and not in audioChunks
+    if (this.mediaRecorder.state === 'recording') {
+      console.log('Requesting final data from MediaRecorder...');
+      this.mediaRecorder.requestData();
+      // Give it a moment to process
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     // Get any chunks that haven't been sent yet

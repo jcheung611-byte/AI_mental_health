@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 type VoiceButtonProps = {
   onAudioRecorded: (audioBlob: Blob, finalChunk: Blob | null) => void; // Added finalChunk for remaining audio
@@ -17,11 +17,25 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
   const [recordingStartTime, setRecordingStartTime] = useState<number>(0);
   const [isTabHidden, setIsTabHidden] = useState(false);
   
+  // Store visibility handler ref so we can remove it later
+  const visibilityHandlerRef = useRef<(() => void) | null>(null);
+  
   // Chunking for live transcription (5 seconds per chunk for near-real-time feel)
   const CHUNK_DURATION_MS = 5 * 1000; // 5 seconds - faster updates!
   
   // No more max duration! Effectively unlimited recording
   // (We'll handle large files differently via chunking + Supabase Storage)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Remove visibility listener if still attached
+      if (visibilityHandlerRef.current) {
+        document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
+        visibilityHandlerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -108,6 +122,8 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
           setIsTabHidden(false);
         }
       };
+      // Store handler ref so we can remove it later
+      visibilityHandlerRef.current = handleVisibilityChange;
       document.addEventListener('visibilitychange', handleVisibilityChange);
       
     } catch (error) {
@@ -176,8 +192,11 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
         setChunkIntervalId(null);
       }
       
-      // Remove visibility listener
-      document.removeEventListener('visibilitychange', () => {});
+      // Remove visibility listener properly using the stored ref
+      if (visibilityHandlerRef.current) {
+        document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
+        visibilityHandlerRef.current = null;
+      }
 
       console.log(`[${new Date().toISOString()}] 📤 Sending complete audio + final chunk to parent`);
       onAudioRecorded(audioBlob, finalChunk);
@@ -195,6 +214,12 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
       if (chunkIntervalId) {
         clearInterval(chunkIntervalId);
         setChunkIntervalId(null);
+      }
+      
+      // Remove visibility listener on error too
+      if (visibilityHandlerRef.current) {
+        document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
+        visibilityHandlerRef.current = null;
       }
       
       // Show user-friendly error
