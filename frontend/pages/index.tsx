@@ -36,6 +36,9 @@ export default function Home() {
   // Audio storage for future Supabase upload
   const fullAudioBlobRef = useRef<Blob | null>(null);
   
+  // Debug: test audio playback
+  const [debugAudioUrl, setDebugAudioUrl] = useState<string | null>(null);
+  
   // Playback state per message
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [playbackStates, setPlaybackStates] = useState<Record<string, 'stopped' | 'playing' | 'paused' | 'loading'>>({});
@@ -1063,6 +1066,14 @@ export default function Home() {
     // Store full audio blob for later upload to Supabase Storage
     fullAudioBlobRef.current = blob;
     
+    // DEBUG: Create playback URL to verify full audio was recorded
+    if (debugAudioUrl) {
+      URL.revokeObjectURL(debugAudioUrl);
+    }
+    const testUrl = URL.createObjectURL(blob);
+    setDebugAudioUrl(testUrl);
+    console.log(`[${timestamp}] 🔊 DEBUG: Audio playback URL created - test in console: new Audio("${testUrl}").play()`);
+    
     // Validate audio blob
     if (blob.size < 100) {
       setError('Audio recording too short. Please speak for at least 1 second.');
@@ -1562,6 +1573,21 @@ export default function Home() {
           <div className="mt-4 text-center text-xs text-gray-400">
             <p>Full voice loop: Speech → Text → AI Response → Voice</p>
           </div>
+          
+          {/* DEBUG: Audio playback test */}
+          {debugAudioUrl && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+              <p className="text-sm font-semibold text-yellow-800 mb-2">🔧 Debug: Test Recorded Audio</p>
+              <p className="text-xs text-yellow-700 mb-2">
+                Click play to verify the FULL recording was captured (not just first 10s):
+              </p>
+              <audio controls src={debugAudioUrl} className="w-full" />
+              <p className="text-xs text-yellow-600 mt-2">
+                If audio is complete but transcript is short, issue is with Whisper API.
+                If audio is cut off, issue is with MediaRecorder.
+              </p>
+            </div>
+          )}
         </div>
       </main>
 
