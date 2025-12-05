@@ -1,18 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 type VoiceButtonProps = {
-  onAudioRecorded: (audioBlob: Blob, finalChunk: Blob | null) => void; // Added finalChunk for remaining audio
+  onAudioRecorded: (audioBlob: Blob) => void;
   onRecordingStart?: () => void;
-  onChunkRecorded?: (chunk: Blob) => void; // For live transcription (incremental chunks)
   disabled?: boolean;
 };
 
-export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunkRecorded, disabled }: VoiceButtonProps) {
+export default function VoiceButton({ onAudioRecorded, onRecordingStart, disabled }: VoiceButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [recorder, setRecorder] = useState<any>(null);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
-  const [chunkIntervalId, setChunkIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<number>(0);
   const [isTabHidden, setIsTabHidden] = useState(false);
@@ -20,12 +18,10 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
   // Store visibility handler ref so we can remove it later
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   
-  // Chunking for live transcription (5 seconds per chunk for near-real-time feel)
-  const CHUNK_DURATION_MS = 5 * 1000; // 5 seconds - faster updates!
+  // Max recording duration (5 minutes = safe for Vercel's 4.5MB limit)
+  // ~1MB per minute for webm/opus, so 5 min ≈ 5MB (with some buffer)
+  const MAX_DURATION_SECONDS = 5 * 60; // 5 minutes
   
-  // No more max duration! Effectively unlimited recording
-  // (We'll handle large files differently via chunking + Supabase Storage)
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -88,29 +84,19 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
         onRecordingStart();
       }
 
-      // Start duration counter
+      // Start duration counter with auto-stop at max duration
       const id = setInterval(() => {
-        setDuration(prev => prev + 0.1);
+        setDuration(prev => {
+          const newDuration = prev + 0.1;
+          // Auto-stop if max duration reached
+          if (newDuration >= MAX_DURATION_SECONDS) {
+            console.log(`[${new Date().toISOString()}] ⏱️ Max duration reached (${MAX_DURATION_SECONDS}s), auto-stopping`);
+            stopRecording();
+          }
+          return newDuration;
+        });
       }, 100);
       setIntervalId(id);
-      
-      // Start chunking timer for live transcription (using NEW chunks only!)
-      if (onChunkRecorded) {
-        const chunkId = setInterval(async () => {
-          console.log(`[${new Date().toISOString()}] 🔄 Chunk interval triggered - getting NEW audio chunks`);
-          try {
-            // Use getNewChunks() to only transcribe audio since last call
-            const chunk = await newRecorder.getNewChunks();
-            if (chunk && chunk.size > 0) {
-              console.log(`[${new Date().toISOString()}] ✅ New chunk extracted:`, chunk.size, 'bytes');
-              onChunkRecorded(chunk);
-            }
-          } catch (error) {
-            console.error(`[${new Date().toISOString()}] ❌ Failed to get chunk:`, error);
-          }
-        }, CHUNK_DURATION_MS);
-        setChunkIntervalId(chunkId);
-      }
       
       // Handle tab visibility changes (keep recording even when tab is hidden)
       const handleVisibilityChange = () => {
@@ -165,31 +151,19 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
     console.log(`[${new Date().toISOString()}] ⏹️ Stopping recording after ${Date.now() - recordingStartTime}ms`);
 
     try {
-      // CRITICAL: Get the final chunk BEFORE stopping (remaining audio after last interval)
-      const finalChunk = await recorder.getFinalChunk();
-      if (finalChunk && finalChunk.size > 0) {
-        console.log(`[${new Date().toISOString()}] 📦 Final chunk captured:`, finalChunk.size, 'bytes');
-      } else {
-        console.log(`[${new Date().toISOString()}] ℹ️ No final chunk (all audio already sent)`);
-      }
-      
       const audioBlob = await recorder.stopRecording();
-      const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(1);
+      const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(2);
       console.log(`[${new Date().toISOString()}] 📦 Full audio blob created:`, sizeMB, 'MB (', audioBlob.size, 'bytes)');
       
-      // Clear intervals
+      // Clear state
       setIsRecording(false);
       setRecorder(null);
       setIsTabHidden(false);
+      setDuration(0);
       
       if (intervalId) {
         clearInterval(intervalId);
         setIntervalId(null);
-      }
-      
-      if (chunkIntervalId) {
-        clearInterval(chunkIntervalId);
-        setChunkIntervalId(null);
       }
       
       // Remove visibility listener properly using the stored ref
@@ -198,22 +172,18 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
         visibilityHandlerRef.current = null;
       }
 
-      console.log(`[${new Date().toISOString()}] 📤 Sending complete audio + final chunk to parent`);
-      onAudioRecorded(audioBlob, finalChunk);
+      console.log(`[${new Date().toISOString()}] 📤 Sending complete audio to parent`);
+      onAudioRecorded(audioBlob);
     } catch (error: any) {
       console.error(`[${new Date().toISOString()}] ❌ Failed to stop recording:`, error);
       setIsRecording(false);
       setRecorder(null);
       setIsTabHidden(false);
+      setDuration(0);
       
       if (intervalId) {
         clearInterval(intervalId);
         setIntervalId(null);
-      }
-      
-      if (chunkIntervalId) {
-        clearInterval(chunkIntervalId);
-        setChunkIntervalId(null);
       }
       
       // Remove visibility listener on error too
@@ -251,9 +221,14 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
         <div className="flex flex-col items-center gap-1">
           <div className="text-sm font-mono font-semibold text-gray-600">
             Recording: {Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}
+            <span className="text-gray-400 ml-1">
+              / {Math.floor(MAX_DURATION_SECONDS / 60)}:00
+            </span>
           </div>
           <div className="text-xs text-gray-500">
-            ✨ Unlimited length - take your time
+            {duration >= MAX_DURATION_SECONDS - 30 
+              ? '⚠️ Approaching limit...' 
+              : '🎙️ Up to 5 minutes per message'}
           </div>
           {isTabHidden && (
             <div className="text-xs text-orange-600 font-medium animate-pulse">
@@ -266,7 +241,7 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, onChunk
       <div className="text-xs text-gray-500 text-center max-w-xs">
         {isRecording 
           ? '🔴 Recording in progress - Click to stop' 
-          : 'Click to start recording (unlimited length!)'
+          : 'Click to start recording (up to 5 min)'
         }
       </div>
     </div>

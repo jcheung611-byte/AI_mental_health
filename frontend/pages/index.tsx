@@ -33,9 +33,7 @@ export default function Home() {
   const [textInput, setTextInput] = useState<string>('');
   const [messageQueue, setMessageQueue] = useState<string[]>([]);
   
-  // Live transcription state
-  const [liveTranscript, setLiveTranscript] = useState<string>('');
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  // Audio storage for future Supabase upload
   const fullAudioBlobRef = useRef<Blob | null>(null);
   
   // Playback state per message
@@ -877,51 +875,9 @@ export default function Home() {
     // Stop any playing audio
     stopAllAudio();
     
-    // Clear error and reset live transcript
+    // Clear error
     setError('');
-    setLiveTranscript('');
     fullAudioBlobRef.current = null;
-  };
-
-  const handleChunkRecorded = async (chunk: Blob) => {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] 📦 CHUNK RECEIVED:`, chunk.size, 'bytes');
-    
-    // Don't process if already transcribing a chunk
-    if (isTranscribing) {
-      console.log(`[${timestamp}] ⏸️ Already transcribing, skipping this chunk`);
-      return;
-    }
-    
-    setIsTranscribing(true);
-    
-    try {
-      console.log(`[${timestamp}] 📝 Transcribing chunk...`);
-      const formData = new FormData();
-      formData.append('audio', chunk, 'chunk.webm');
-      
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        console.error(`[${timestamp}] ❌ Chunk transcription failed:`, response.status);
-        return; // Silently fail for chunks, don't interrupt recording
-      }
-      
-      const { text } = await response.json();
-      console.log(`[${timestamp}] ✅ Chunk transcribed:`, text);
-      
-      if (text && text.trim()) {
-        setLiveTranscript(prev => prev ? `${prev} ${text}` : text);
-      }
-    } catch (error) {
-      console.error(`[${timestamp}] ❌ Chunk transcription error:`, error);
-      // Silently fail for chunks
-    } finally {
-      setIsTranscribing(false);
-    }
   };
 
   const processTextMessage = async (text: string) => {
@@ -1095,17 +1051,13 @@ export default function Home() {
     }
   };
 
-  const handleAudioRecorded = async (blob: Blob, finalChunk: Blob | null) => {
+  const handleAudioRecorded = async (blob: Blob) => {
     const timestamp = new Date().toISOString();
-    const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
     console.log(`[${timestamp}] 📥 AUDIO RECORDED - handleAudioRecorded called`, {
       blobSize: blob.size,
       blobSizeMB: sizeMB,
       blobType: blob.type,
-      hasLiveTranscript: !!liveTranscript,
-      liveTranscriptLength: liveTranscript.length,
-      hasFinalChunk: !!finalChunk,
-      finalChunkSize: finalChunk?.size || 0,
     });
     
     // Store full audio blob for later upload to Supabase Storage
@@ -1117,90 +1069,47 @@ export default function Home() {
       setStatus('Ready - Click to speak');
       return;
     }
+    
+    // Check if audio is too large (>4.5MB = Vercel limit)
+    const MAX_SIZE_MB = 4.5;
+    if (blob.size > MAX_SIZE_MB * 1024 * 1024) {
+      setError(`Recording too large (${sizeMB}MB). Please keep under 5 minutes. Future update: longer recordings via Supabase.`);
+      setStatus('Ready - Click to speak');
+      return;
+    }
 
-    console.log(`[${timestamp}] ✅ Audio validated, processing with hybrid approach`);
+    console.log(`[${timestamp}] ✅ Audio validated (${sizeMB}MB), transcribing...`);
     
     setIsProcessing(true);
+    setStatus('Transcribing your message...');
 
     try {
-      let finalTranscript = liveTranscript.trim();
-      
-      // CRITICAL: Transcribe the final chunk (remaining audio after last interval)
-      if (finalChunk && finalChunk.size > 100) {
-        console.log(`[${timestamp}] 📝 Transcribing final chunk (${finalChunk.size} bytes)...`);
-        setStatus('Transcribing final audio...');
+      // Transcribe the full audio
+      const formData = new FormData();
+      formData.append('audio', blob, 'recording.webm');
+
+      const transcribeResponse = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json().catch(() => ({}));
+        const errorMsg = errorData.details || errorData.error || 'Transcription failed';
         
-        try {
-          const formData = new FormData();
-          formData.append('audio', finalChunk, 'finalchunk.webm');
-          
-          const response = await fetch('/api/transcribe', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (response.ok) {
-            const { text } = await response.json();
-            if (text && text.trim()) {
-              console.log(`[${timestamp}] ✅ Final chunk transcribed:`, text);
-              finalTranscript = finalTranscript ? `${finalTranscript} ${text}` : text;
-            }
-          } else {
-            console.warn(`[${timestamp}] ⚠️ Final chunk transcription failed, continuing with existing transcript`);
-          }
-        } catch (error) {
-          console.warn(`[${timestamp}] ⚠️ Final chunk transcription error:`, error);
-          // Continue with existing transcript - don't fail the whole flow
+        if (transcribeResponse.status === 413) {
+          throw new Error('Recording too large. Please keep under 5 minutes.');
         }
+        throw new Error(errorMsg);
       }
-      
-      // If we have live transcript from chunks, use it!
-      if (finalTranscript) {
-        console.log(`[${timestamp}] ✨ Using complete transcript (${finalTranscript.length} chars)`);
-        setStatus('Processing your message...');
-      } else {
-        // Fallback: transcribe the full audio (for short recordings or if chunking failed)
-        console.log(`[${timestamp}] 📝 No live transcript, transcribing full audio (${sizeMB} MB)`);
-        setStatus('Transcribing audio...');
-        
-        const formData = new FormData();
-        formData.append('audio', blob, 'recording.webm');
 
-        const transcribeResponse = await fetch('/api/transcribe', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!transcribeResponse.ok) {
-          // Check for file too large error (413)
-          if (transcribeResponse.status === 413) {
-            throw new Error('⚠️ Recording too large!\n\nLive transcription didn\'t capture enough text.\nPlease try again or keep under 5 minutes for now.');
-          }
-          
-          const errorData = await transcribeResponse.json().catch(() => ({}));
-          const errorMsg = errorData.details || errorData.error || 'Transcription failed';
-          
-          // Check for audio format errors
-          if (errorMsg.includes('could not be decoded') || errorMsg.includes('format is not supported')) {
-            throw new Error('Audio recording was corrupted. Please try speaking again - make sure to speak for at least 1 second.');
-          } else if (errorMsg.includes('too short')) {
-            throw new Error('Recording was too short. Please speak for at least 1 second.');
-          }
-          
-          throw new Error(errorMsg);
-        }
-
-        const transcribeData = await transcribeResponse.json();
-        finalTranscript = transcribeData.text;
-        console.log(`[${timestamp}] ✅ Fallback transcription received:`, finalTranscript);
-      }
+      const transcribeData = await transcribeResponse.json();
+      const finalTranscript = transcribeData.text;
+      console.log(`[${timestamp}] ✅ Transcription received (${finalTranscript.length} chars):`, finalTranscript.substring(0, 100) + '...');
       
       if (!finalTranscript || finalTranscript.trim() === '') {
         throw new Error('No speech detected. Please try again.');
       }
-      
-      // Clear live transcript
-      setLiveTranscript('');
       
       // Add user message to conversation
       const userMessageId = crypto.randomUUID();
@@ -1354,30 +1263,9 @@ export default function Home() {
               <VoiceButton 
                 onAudioRecorded={handleAudioRecorded}
                 onRecordingStart={handleRecordingStart}
-                onChunkRecorded={handleChunkRecorded}
                 disabled={isProcessing}
               />
               
-              {/* Live Transcription Preview */}
-              {liveTranscript && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 w-full max-w-2xl p-4 bg-blue-50 border-2 border-blue-200 rounded-lg"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-blue-700">
-                      ✨ Live Transcription
-                    </p>
-                    <span className="text-xs text-blue-600">
-                      {liveTranscript.split(' ').length} words
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {liveTranscript}
-                  </p>
-                </motion.div>
-              )}
             </div>
           </div>
           
