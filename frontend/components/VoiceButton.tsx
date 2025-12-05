@@ -84,17 +84,20 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
         onRecordingStart();
       }
 
-      // Start duration counter with auto-stop at max duration
+      // Start duration counter using REAL elapsed time (not increment)
+      // This ensures timer is accurate even when tab is in background
+      const startTime = Date.now();
+      setRecordingStartTime(startTime);
+      
       const id = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 0.1;
-          // Auto-stop if max duration reached
-          if (newDuration >= MAX_DURATION_SECONDS) {
-            console.log(`[${new Date().toISOString()}] ⏱️ Max duration reached (${MAX_DURATION_SECONDS}s), auto-stopping`);
-            stopRecording();
-          }
-          return newDuration;
-        });
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        setDuration(elapsedSeconds);
+        
+        // Auto-stop if max duration reached
+        if (elapsedSeconds >= MAX_DURATION_SECONDS) {
+          console.log(`[${new Date().toISOString()}] ⏱️ Max duration reached (${MAX_DURATION_SECONDS}s), auto-stopping`);
+          stopRecording();
+        }
       }, 100);
       setIntervalId(id);
       

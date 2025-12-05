@@ -1081,11 +1081,12 @@ export default function Home() {
       return;
     }
     
-    // Vercel Pro supports up to 100MB, so we're good!
-    // Just warn if it's really huge (>25MB = Whisper limit)
+    // Vercel Pro supports up to 100MB
+    // Whisper API limit is 25MB (~25 minutes of audio)
     const MAX_SIZE_MB = 25;
     if (blob.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`Recording too large (${sizeMB}MB). Whisper API limit is 25MB (~25 minutes). Please keep recordings shorter.`);
+      const estimatedMinutes = Math.round(blob.size / 1024 / 1024); // ~1MB per minute
+      setError(`Recording too large (${sizeMB}MB ≈ ${estimatedMinutes} min). OpenAI Whisper limit is 25MB. Please keep under ~20 minutes.`);
       setStatus('Ready - Click to speak');
       return;
     }
