@@ -1,7 +1,7 @@
 # 🚀 Progress Tracker
 **Project:** Mental Health Companion  
 **Started:** November 28, 2025  
-**Last Updated:** December 4, 2025
+**Last Updated:** December 5, 2025
 
 ---
 
@@ -219,6 +219,52 @@ AFTER (5s chunks, captures everything):
 - ✅ Same cost as before (Whisper charges by audio duration)
 
 **Next Step:** Test with 10+ minute recording to validate
+
+---
+
+#### 🔧 Simplified Recording: Remove Broken Chunking (Dec 5, 2025)
+**Phase:** Phase 1 - Foundation  
+**Feature:** Recording System  
+**Type:** Refactor (Critical Fix)
+
+**Problem Discovered:**
+- Live transcription chunking was completely broken!
+- WebM audio needs a **header** in the first chunk
+- When we sliced `chunks[50:100]`, we got audio without headers
+- Result: Only first chunk transcribed, rest failed silently
+- User reported: "Only first 10s transcribed, nothing else worked"
+
+**Root Cause:**
+```
+chunks[0-50]:   Has header ✅ → Transcribes!
+chunks[50-100]: NO header ❌ → Invalid audio → Whisper fails
+chunks[100-150]: NO header ❌ → Invalid audio → Whisper fails
+```
+
+**Solution: Simplify!**
+- Removed all chunking logic (it can't work with webm)
+- Now transcribes full audio at the end
+- Added 5-minute max recording limit (safe for Vercel 4.5MB)
+- Auto-stops when max duration reached
+- Shows remaining time in UI
+
+**Changes:**
+- `VoiceButton.tsx`: Removed chunk interval, added max duration, simplified props
+- `index.tsx`: Removed live transcript state, removed chunk handler, simplified flow
+
+**Trade-offs:**
+- ❌ No live transcription preview (was broken anyway)
+- ✅ 100% reliable transcription
+- ✅ Much simpler code
+- ✅ 5 minutes is plenty for most vents
+
+**Future:**
+- For longer recordings: Upload to Supabase Storage first, then transcribe server-side
+- Live transcription would require WebSocket streaming or different audio format
+
+**Files:**
+- `frontend/components/VoiceButton.tsx`
+- `frontend/pages/index.tsx`
 
 ---
 
