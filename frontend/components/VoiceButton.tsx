@@ -18,9 +18,9 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
   // Store visibility handler ref so we can remove it later
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   
-  // Max recording duration (5 minutes = safe for Vercel's 4.5MB limit)
-  // ~1MB per minute for webm/opus, so 5 min ≈ 5MB (with some buffer)
-  const MAX_DURATION_SECONDS = 5 * 60; // 5 minutes
+  // Max recording duration (15 minutes = ~15MB, well under Whisper's 25MB limit)
+  // Vercel Pro supports up to 100MB, Whisper supports up to 25MB
+  const MAX_DURATION_SECONDS = 15 * 60; // 15 minutes
   
   // Cleanup on unmount
   useEffect(() => {
@@ -226,9 +226,9 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
             </span>
           </div>
           <div className="text-xs text-gray-500">
-            {duration >= MAX_DURATION_SECONDS - 30 
+            {duration >= MAX_DURATION_SECONDS - 60 
               ? '⚠️ Approaching limit...' 
-              : '🎙️ Up to 5 minutes per message'}
+              : '🎙️ Up to 15 minutes per message'}
           </div>
           {isTabHidden && (
             <div className="text-xs text-orange-600 font-medium animate-pulse">
@@ -241,7 +241,7 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
       <div className="text-xs text-gray-500 text-center max-w-xs">
         {isRecording 
           ? '🔴 Recording in progress - Click to stop' 
-          : 'Click to start recording (up to 5 min)'
+          : 'Click to start recording (up to 15 min)'
         }
       </div>
     </div>

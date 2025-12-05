@@ -3,7 +3,7 @@ import Head from 'next/head';
 import VoiceButton from '@/components/VoiceButton';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase, DEFAULT_USER_ID } from '@/utils/supabase';
+import { supabase, DEFAULT_USER_ID, uploadAudioToStorage } from '@/utils/supabase';
 
 type Message = {
   id: string;
@@ -1081,10 +1081,11 @@ export default function Home() {
       return;
     }
     
-    // Check if audio is too large (>4.5MB = Vercel limit)
-    const MAX_SIZE_MB = 4.5;
+    // Vercel Pro supports up to 100MB, so we're good!
+    // Just warn if it's really huge (>25MB = Whisper limit)
+    const MAX_SIZE_MB = 25;
     if (blob.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`Recording too large (${sizeMB}MB). Please keep under 5 minutes. Future update: longer recordings via Supabase.`);
+      setError(`Recording too large (${sizeMB}MB). Whisper API limit is 25MB (~25 minutes). Please keep recordings shorter.`);
       setStatus('Ready - Click to speak');
       return;
     }
