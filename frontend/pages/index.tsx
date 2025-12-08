@@ -1475,26 +1475,19 @@ Return ONLY valid JSON, no other text.`,
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       
-      <main className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex flex-col items-center justify-center p-8">
-        <div className="max-w-2xl w-full">
-          <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            AI Voice Assistant
+      <main className="h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex flex-col p-4 pb-0">
+        {/* Compact Header */}
+        <div className="flex items-center justify-center gap-3 py-3 flex-shrink-0">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            AI Voice Companion
           </h1>
-          <p className="text-center text-gray-600 mb-12">v0 - Complete Voice Interface</p>
-          
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-            <div className="flex flex-col items-center">
-              <VoiceButton 
-                onAudioRecorded={handleAudioRecorded}
-                onRecordingStart={handleRecordingStart}
-                disabled={isProcessing}
-              />
-              
-            </div>
-          </div>
-          
-          {/* Conversation History with Integrated Status */}
-          <div className="bg-white rounded-xl shadow-md flex flex-col" style={{ height: 'calc(100vh - 350px)', minHeight: '450px', maxHeight: '700px' }}>
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">v0</span>
+        </div>
+        
+        {/* Main Content - Takes remaining height */}
+        <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto min-h-0">
+          {/* Conversation History - Expands to fill space */}
+          <div className="bg-white rounded-xl shadow-md flex flex-col flex-1 min-h-0 mb-4">
             {/* Header with Status */}
             <div className="border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
               <div className="flex items-center justify-between p-4">
@@ -1766,41 +1759,23 @@ Return ONLY valid JSON, no other text.`,
             </div>
           </div>
           
-          <div className="mt-6 p-4 bg-white/80 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">How to use:</h3>
-            <ul className="text-xs text-gray-600 space-y-1">
-              <li>• <strong>Voice:</strong> Click the mic to start/stop recording, or</li>
-              <li>• <strong>Text:</strong> Type in the text box at the bottom of the conversation</li>
-              <li>• The AI remembers your conversation and will speak responses</li>
-              <li>• Each message has playback controls (play, pause, skip, speed)</li>
-              <li>• You can interrupt the AI at any time by recording again</li>
-              <li>• Change voice in Settings - old messages auto-regenerate when played</li>
-            </ul>
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-xs text-gray-500">
-                <strong>Current Voice:</strong> {selectedVoice} ({selectedModel === 'tts-1-hd' ? 'HD' : 'Standard'})
-              </p>
+        </div>
+        
+        {/* Fixed Voice Button Footer */}
+        <div className="flex-shrink-0 bg-white border-t border-gray-200 shadow-lg">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-center gap-6">
+            {/* Voice Button */}
+            <VoiceButton 
+              onAudioRecorded={handleAudioRecorded}
+              onRecordingStart={handleRecordingStart}
+              disabled={isProcessing}
+            />
+            
+            {/* Quick Info */}
+            <div className="hidden sm:block text-xs text-gray-400">
+              <p>Voice: {selectedVoice} • {selectedModel === 'tts-1-hd' ? 'HD' : 'Standard'}</p>
             </div>
           </div>
-          
-          <div className="mt-4 text-center text-xs text-gray-400">
-            <p>Full voice loop: Speech → Text → AI Response → Voice</p>
-          </div>
-          
-          {/* DEBUG: Audio playback test */}
-          {debugAudioUrl && (
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
-              <p className="text-sm font-semibold text-yellow-800 mb-2">🔧 Debug: Test Recorded Audio</p>
-              <p className="text-xs text-yellow-700 mb-2">
-                Click play to verify the FULL recording was captured (not just first 10s):
-              </p>
-              <audio controls src={debugAudioUrl} className="w-full" />
-              <p className="text-xs text-yellow-600 mt-2">
-                If audio is complete but transcript is short, issue is with Whisper API.
-                If audio is cut off, issue is with MediaRecorder.
-              </p>
-            </div>
-          )}
         </div>
       </main>
 
