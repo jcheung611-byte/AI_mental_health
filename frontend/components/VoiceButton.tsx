@@ -4,9 +4,10 @@ type VoiceButtonProps = {
   onAudioRecorded: (audioBlob: Blob) => void;
   onRecordingStart?: () => void;
   disabled?: boolean;
+  compact?: boolean; // For inline use in input bar
 };
 
-export default function VoiceButton({ onAudioRecorded, onRecordingStart, disabled }: VoiceButtonProps) {
+export default function VoiceButton({ onAudioRecorded, onRecordingStart, disabled, compact }: VoiceButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [recorder, setRecorder] = useState<any>(null);
@@ -200,6 +201,57 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
     }
   };
 
+  // Compact mode for inline input bar
+  if (compact) {
+    return (
+      <div className="relative flex items-center">
+        <button
+          onClick={handleClick}
+          disabled={disabled || isStarting}
+          className={`
+            w-10 h-10 rounded-full flex items-center justify-center
+            transition-all duration-200
+            ${isRecording 
+              ? 'bg-red-500 text-white animate-pulse' 
+              : isStarting
+              ? 'bg-yellow-500 text-white'
+              : 'bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-600'
+            }
+            ${disabled || isStarting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+          title={isRecording ? 'Stop recording' : 'Start voice recording'}
+        >
+          {isRecording ? (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="1" />
+            </svg>
+          ) : isStarting ? (
+            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          )}
+        </button>
+        
+        {/* Recording indicator - shows inline */}
+        {isRecording && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+            <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              {Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Full size mode (original)
   return (
     <div className="flex flex-col items-center gap-4">
       <button
