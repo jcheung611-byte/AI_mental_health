@@ -222,6 +222,27 @@ AFTER (5s chunks, captures everything):
 
 ---
 
+## 📋 Backlog / Future Ideas
+
+### Session vs Memory Distinction (Dec 5, 2025)
+**Problem:** Currently, the AI continues conversations from the exact spot left off. But if hours/days have passed, this feels awkward.
+
+**Ideal Behavior:**
+- ✅ Remember long-term facts (name, patterns, ongoing situations, mood trends)
+- ❌ Don't continue mid-conversation ("so as you were saying...")
+- ✅ Open fresh: "Hey, how are you today?" 
+- ✅ Reference past context naturally: "How did that meeting with Sarah go?"
+
+**Implementation Ideas:**
+1. Separate "memories" (facts) from "conversation history" (session)
+2. Clear conversation history after X hours of inactivity
+3. Add "time since last session" context to system prompt
+4. AI opens with time-appropriate greeting based on gap
+
+**Priority:** Medium (after core recording works)
+
+---
+
 #### 🔧 Simplified Recording: Remove Broken Chunking (Dec 5, 2025)
 **Phase:** Phase 1 - Foundation  
 **Feature:** Recording System  
