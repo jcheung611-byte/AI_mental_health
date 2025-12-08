@@ -1,7 +1,7 @@
 # 🚀 Progress Tracker
 **Project:** Mental Health Companion  
 **Started:** November 28, 2025  
-**Last Updated:** December 5, 2025
+**Last Updated:** December 8, 2025
 
 ---
 
@@ -240,6 +240,48 @@ AFTER (5s chunks, captures everything):
 4. AI opens with time-appropriate greeting based on gap
 
 **Priority:** Medium (after core recording works)
+
+---
+
+#### 🐛 Fix: Onboarding Context Parsing Too Aggressive (Dec 8, 2025)
+**Phase:** Phase 1 - Foundation  
+**Feature:** Onboarding Flow  
+**Type:** Fix (Critical)
+
+**Problem:**
+- User pasted a rich, detailed ChatGPT context (500+ words)
+- AI only extracted 2-3 sentences as "About Me" - lost 95% of context!
+- Review textarea too small to see/edit content
+- Settings modal scroll was cut off
+
+**Root Cause:**
+- Prompt asked for "2-3 sentence summary" - way too aggressive
+- Textarea was only `h-24` (96px) - couldn't see content
+- Modal missing `max-h` and `overflow-y-auto`
+
+**Fix:**
+1. **Better AI prompt:**
+   - Extract 15-25 facts (was ~5)
+   - "About Me" now 150-300 words (was 2-3 sentences)
+   - Explicit instruction: "DO NOT over-summarize. Preserve richness."
+   
+2. **Fallback improvement:**
+   - If parsing fails, keep FULL original response (not truncated 500 chars)
+   
+3. **UI improvements:**
+   - Review textarea: `h-24` → `h-48` with `resize-y`
+   - Facts section: `max-h-40` → `max-h-48` with visible border
+   - Step 3: Added `max-h-[75vh] overflow-y-auto`
+   - Settings modal: Added `max-h-[80vh] overflow-y-auto`
+   - About Me in settings: `h-24` → `h-32` with `resize-y`
+   - Copy button: Inline "✓ Copied!" confirmation (green)
+   - Toast z-index: `z-50` → `z-[100]` (shows above modals)
+   - Character count shown under About Me textarea
+
+**Files:**
+- `frontend/pages/index.tsx`
+
+**Next Step:** Test with the same rich ChatGPT response to verify fix
 
 ---
 

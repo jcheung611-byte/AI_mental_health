@@ -53,6 +53,7 @@ export default function Home() {
   const [memoryEnabled, setMemoryEnabled] = useState<boolean>(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [memoryToast, setMemoryToast] = useState<string | null>(null);
+  const [copyConfirm, setCopyConfirm] = useState(false);
   
   // About Me / User Context
   const [userAboutMe, setUserAboutMe] = useState<string>('');
@@ -941,14 +942,30 @@ Format your response as a clear list with categories.`;
     console.log(`[${new Date().toISOString()}] 🔍 Parsing ChatGPT context...`);
     
     try {
-      // Use AI to extract structured facts
+      // Use AI to extract structured facts - but keep FULL context for About Me
       const parseResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `Extract key facts from this text about a person. Return a JSON object with:
-1. "facts": an array of short, specific facts (e.g., "Name is Jordan", "Works at DoorDash", "Has a dog named Max")
-2. "aboutMe": a 2-3 sentence summary of their personality, preferences, and current situation
+          message: `Extract key discrete facts from this text about a person. Return a JSON object with:
+1. "facts": an array of 15-25 short, specific facts - include ALL important details like:
+   - Name, job, location
+   - Family members and relationships  
+   - Pets
+   - Mental health notes (ADHD, anxiety, etc.)
+   - Key interests and hobbies
+   - Career goals
+   - Important life events
+   - Communication preferences
+   Example facts: ["Name is Jordan", "Works at DoorDash in Strategy & Ops", "Dad passed away in 2023", "Has ADHD and anxiety", "Wants to pivot to AI product/engineering"]
+
+2. "aboutMe": A COMPREHENSIVE paragraph (150-300 words) summarizing:
+   - Their personality and emotional patterns
+   - What motivates them
+   - Their communication style preferences
+   - Current life situation and challenges
+   - What kind of support they need
+   DO NOT over-summarize. Preserve the richness and nuance.
 
 Text to parse:
 ${response}
@@ -956,7 +973,7 @@ ${response}
 Return ONLY valid JSON, no other text.`,
           conversationHistory: [],
           memories: [],
-          systemOverride: 'You are a helpful assistant that extracts structured information. Return only valid JSON.'
+          systemOverride: 'You are a helpful assistant that extracts structured information. Be thorough - extract ALL relevant facts and create a comprehensive About Me. Return only valid JSON.'
         }),
       });
 
@@ -979,20 +996,22 @@ Return ONLY valid JSON, no other text.`,
         const facts = parsed.facts || [];
         const aboutMe = parsed.aboutMe || '';
         
-        console.log(`[${new Date().toISOString()}] ✅ Parsed ${facts.length} facts`);
+        console.log(`[${new Date().toISOString()}] ✅ Parsed ${facts.length} facts, About Me: ${aboutMe.length} chars`);
         setParsedFacts(facts);
         setParsedAboutMe(aboutMe);
         setOnboardingStep(3);
       } catch (parseError) {
         console.error('Failed to parse JSON:', parseError);
-        // Fallback: just use the whole response as "about me"
+        // Fallback: keep the FULL original response as "about me"
         setParsedFacts([]);
-        setParsedAboutMe(response.substring(0, 500));
+        setParsedAboutMe(response); // Keep FULL response, not truncated!
         setOnboardingStep(3);
       }
     } catch (error) {
       console.error(`[${new Date().toISOString()}] ❌ Parse error:`, error);
-      setError('Failed to parse context. You can still add it manually in Settings.');
+      // On error, still let them proceed with the full original text
+      setParsedFacts([]);
+      setParsedAboutMe(response); // Keep FULL response
       setOnboardingStep(3);
     } finally {
       setIsParsingContext(false);
@@ -1828,11 +1847,11 @@ Return ONLY valid JSON, no other text.`,
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg mx-4 w-full"
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg mx-4 w-full max-h-[80vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-2">
                 <div className="flex items-center gap-2">
                   <div className="text-3xl">⚙️</div>
                   <h3 className="text-2xl font-bold text-gray-900">Settings</h3>
@@ -1856,7 +1875,7 @@ Return ONLY valid JSON, no other text.`,
                     value={userAboutMe}
                     onChange={(e) => setUserAboutMe(e.target.value)}
                     placeholder="Tell me about yourself - your personality, preferences, current challenges, goals..."
-                    className="w-full h-24 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-sm"
+                    className="w-full h-32 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-y text-sm"
                   />
                   {!userAboutMe && (
                     <button
@@ -2043,7 +2062,7 @@ Return ONLY valid JSON, no other text.`,
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
             transition={{ duration: 0.3 }}
-            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50"
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-[100]"
           >
             <div className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
               <span>💾</span>
@@ -2139,12 +2158,16 @@ Return ONLY valid JSON, no other text.`,
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(CHATGPT_IMPORT_PROMPT);
-                            setMemoryToast('Prompt copied!');
-                            setTimeout(() => setMemoryToast(null), 2000);
+                            setCopyConfirm(true);
+                            setTimeout(() => setCopyConfirm(false), 2000);
                           }}
-                          className="absolute top-2 right-2 px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 transition-all"
+                          className={`absolute top-2 right-2 px-3 py-1 text-white text-xs rounded-lg transition-all ${
+                            copyConfirm 
+                              ? 'bg-green-500' 
+                              : 'bg-purple-500 hover:bg-purple-600'
+                          }`}
                         >
-                          📋 Copy
+                          {copyConfirm ? '✓ Copied!' : '📋 Copy'}
                         </button>
                       </div>
                     </div>
@@ -2179,7 +2202,7 @@ Return ONLY valid JSON, no other text.`,
 
               {/* Step 3: Review & Confirm */}
               {onboardingStep === 3 && (
-                <div className="p-8">
+                <div className="p-8 max-h-[75vh] overflow-y-auto">
                   <button
                     onClick={() => setOnboardingStep(2)}
                     className="text-gray-500 hover:text-gray-700 mb-4"
@@ -2190,7 +2213,7 @@ Return ONLY valid JSON, no other text.`,
                   <div className="text-center mb-6">
                     <div className="text-4xl mb-2">✨</div>
                     <h2 className="text-xl font-bold text-gray-900">Here's what I learned</h2>
-                    <p className="text-sm text-gray-600">Review and edit before saving</p>
+                    <p className="text-sm text-gray-600">Review and edit before saving - scroll to see everything!</p>
                   </div>
                   
                   <div className="space-y-6">
@@ -2198,9 +2221,9 @@ Return ONLY valid JSON, no other text.`,
                     {parsedFacts.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-gray-700 mb-2">
-                          📋 Facts I'll remember:
+                          📋 Facts I'll remember ({parsedFacts.length} items):
                         </p>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                        <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
                           {parsedFacts.map((fact, index) => (
                             <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
                               <span className="text-purple-600">•</span>
@@ -2236,9 +2259,12 @@ Return ONLY valid JSON, no other text.`,
                       <textarea
                         value={parsedAboutMe}
                         onChange={(e) => setParsedAboutMe(e.target.value)}
-                        placeholder="A brief description of yourself, your preferences, and current situation..."
-                        className="w-full h-24 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-sm"
+                        placeholder="A comprehensive description of yourself - personality, preferences, challenges, goals, communication style..."
+                        className="w-full h-48 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-y text-sm"
                       />
+                      <p className="text-xs text-gray-400 mt-1">
+                        {parsedAboutMe.length} characters • More context = better personalization
+                      </p>
                     </div>
                     
                     <button
