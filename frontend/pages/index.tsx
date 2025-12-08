@@ -24,6 +24,8 @@ type Memory = {
 const STORAGE_KEY = 'ai-voice-conversations';
 const MEMORY_STORAGE_KEY = 'ai-voice-memories';
 const MEMORY_ENABLED_KEY = 'ai-voice-memory-enabled';
+const ABOUT_ME_KEY = 'ai-voice-about-me';
+const ONBOARDING_COMPLETE_KEY = 'ai-voice-onboarding-complete';
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -51,6 +53,17 @@ export default function Home() {
   const [memoryEnabled, setMemoryEnabled] = useState<boolean>(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [memoryToast, setMemoryToast] = useState<string | null>(null);
+  
+  // About Me / User Context
+  const [userAboutMe, setUserAboutMe] = useState<string>('');
+  
+  // Onboarding
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<number>(1);
+  const [chatGPTResponse, setChatGPTResponse] = useState<string>('');
+  const [parsedFacts, setParsedFacts] = useState<string[]>([]);
+  const [parsedAboutMe, setParsedAboutMe] = useState<string>('');
+  const [isParsingContext, setIsParsingContext] = useState(false);
   
   // Voice settings
   const [selectedVoice, setSelectedVoice] = useState<string>('nova');
@@ -379,11 +392,39 @@ export default function Home() {
         console.error('Failed to load voice settings:', error);
       }
     };
+
+    const loadAboutMe = () => {
+      try {
+        const storedAboutMe = localStorage.getItem(ABOUT_ME_KEY);
+        if (storedAboutMe) {
+          setUserAboutMe(storedAboutMe);
+          console.log(`[${new Date().toISOString()}] 📝 Loaded About Me: ${storedAboutMe.substring(0, 50)}...`);
+        }
+      } catch (error) {
+        console.error('Failed to load About Me:', error);
+      }
+    };
+
+    const checkOnboarding = () => {
+      try {
+        const hasCompleted = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        if (!hasCompleted) {
+          // Show onboarding for new users after a brief delay
+          setTimeout(() => {
+            setShowOnboardingModal(true);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+      }
+    };
     
     loadConversations();
     loadMemories();
     loadMemorySettings();
     loadVoiceSettings();
+    loadAboutMe();
+    checkOnboarding();
   }, []);
 
   // Manual save function to save to both Supabase and localStorage
@@ -480,6 +521,17 @@ export default function Home() {
       console.error('Failed to save model preference:', error);
     }
   }, [selectedModel]);
+
+  // Save About Me whenever it changes
+  useEffect(() => {
+    try {
+      if (userAboutMe) {
+        localStorage.setItem(ABOUT_ME_KEY, userAboutMe);
+      }
+    } catch (error) {
+      console.error('Failed to save About Me:', error);
+    }
+  }, [userAboutMe]);
 
   // Auto-scroll to bottom when new messages arrive (only if near bottom)
   useEffect(() => {
@@ -871,6 +923,124 @@ export default function Home() {
     }
   };
 
+  // ChatGPT context import prompt
+  const CHATGPT_IMPORT_PROMPT = `Tell me everything you know about me as a person. Please include:
+- My name (if you know it)
+- My job/profession
+- My relationships (family, friends, pets)
+- My interests and hobbies
+- Challenges or struggles I've mentioned
+- My communication preferences
+- Anything else important about me
+
+Format your response as a clear list with categories.`;
+
+  // Parse ChatGPT response into facts and about me
+  const parseContextFromChatGPT = async (response: string) => {
+    setIsParsingContext(true);
+    console.log(`[${new Date().toISOString()}] 🔍 Parsing ChatGPT context...`);
+    
+    try {
+      // Use AI to extract structured facts
+      const parseResponse = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Extract key facts from this text about a person. Return a JSON object with:
+1. "facts": an array of short, specific facts (e.g., "Name is Jordan", "Works at DoorDash", "Has a dog named Max")
+2. "aboutMe": a 2-3 sentence summary of their personality, preferences, and current situation
+
+Text to parse:
+${response}
+
+Return ONLY valid JSON, no other text.`,
+          conversationHistory: [],
+          memories: [],
+          systemOverride: 'You are a helpful assistant that extracts structured information. Return only valid JSON.'
+        }),
+      });
+
+      if (!parseResponse.ok) {
+        throw new Error('Failed to parse context');
+      }
+
+      const data = await parseResponse.json();
+      
+      // Try to parse the AI response as JSON
+      try {
+        // Extract JSON from the response (it might be wrapped in markdown code blocks)
+        let jsonStr = data.text;
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        }
+        
+        const parsed = JSON.parse(jsonStr);
+        const facts = parsed.facts || [];
+        const aboutMe = parsed.aboutMe || '';
+        
+        console.log(`[${new Date().toISOString()}] ✅ Parsed ${facts.length} facts`);
+        setParsedFacts(facts);
+        setParsedAboutMe(aboutMe);
+        setOnboardingStep(3);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        // Fallback: just use the whole response as "about me"
+        setParsedFacts([]);
+        setParsedAboutMe(response.substring(0, 500));
+        setOnboardingStep(3);
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] ❌ Parse error:`, error);
+      setError('Failed to parse context. You can still add it manually in Settings.');
+      setOnboardingStep(3);
+    } finally {
+      setIsParsingContext(false);
+    }
+  };
+
+  // Complete onboarding and save everything
+  const completeOnboarding = async () => {
+    console.log(`[${new Date().toISOString()}] ✨ Completing onboarding...`);
+    
+    // Save parsed facts as memories
+    if (parsedFacts.length > 0) {
+      const newMemories = parsedFacts.map(fact => ({
+        id: crypto.randomUUID(),
+        fact: fact,
+        timestamp: new Date(),
+      }));
+      setMemories(prev => [...prev, ...newMemories]);
+      console.log(`[${new Date().toISOString()}] 💾 Saved ${newMemories.length} facts as memories`);
+    }
+    
+    // Save about me
+    if (parsedAboutMe) {
+      setUserAboutMe(parsedAboutMe);
+      console.log(`[${new Date().toISOString()}] 💾 Saved About Me`);
+    }
+    
+    // Mark onboarding complete
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    
+    // Close modal
+    setShowOnboardingModal(false);
+    setOnboardingStep(1);
+    setChatGPTResponse('');
+    setParsedFacts([]);
+    setParsedAboutMe('');
+    
+    setMemoryToast('Welcome! Your context has been saved 🎉');
+    setTimeout(() => setMemoryToast(null), 3000);
+  };
+
+  // Skip onboarding
+  const skipOnboarding = () => {
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    setShowOnboardingModal(false);
+    setOnboardingStep(1);
+  };
+
   const handleRecordingStart = () => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🎤 RECORDING STARTED - checking for audio to interrupt`);
@@ -924,6 +1094,7 @@ export default function Home() {
           message: text,
           conversationHistory: conversationHistory,
           memories: memories,
+          userAboutMe: userAboutMe,
         }),
       });
 
@@ -1159,6 +1330,7 @@ export default function Home() {
           message: finalTranscript,
           conversationHistory: conversationHistory,
           memories: memories,
+          userAboutMe: userAboutMe,
         }),
       });
 
@@ -1673,8 +1845,34 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Memory Settings Section */}
+                {/* About Me Section */}
               <div className="space-y-4">
+                <div className="border-b border-gray-200 pb-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">📝 About Me</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    This context helps me understand you better. Edit anytime.
+                  </p>
+                  <textarea
+                    value={userAboutMe}
+                    onChange={(e) => setUserAboutMe(e.target.value)}
+                    placeholder="Tell me about yourself - your personality, preferences, current challenges, goals..."
+                    className="w-full h-24 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-sm"
+                  />
+                  {!userAboutMe && (
+                    <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        setShowOnboardingModal(true);
+                        setOnboardingStep(2);
+                      }}
+                      className="mt-2 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      🔗 Import from ChatGPT
+                    </button>
+                  )}
+                </div>
+
+                {/* Memory Settings Section */}
                 <div className="border-b border-gray-200 pb-4">
                   <h4 className="text-lg font-semibold text-gray-800 mb-3">🧠 Memory</h4>
                   
@@ -1851,6 +2049,215 @@ export default function Home() {
               <span>💾</span>
               <span className="font-medium">{memoryToast}</span>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Onboarding Modal */}
+      <AnimatePresence>
+        {showOnboardingModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            >
+              {/* Step 1: Welcome */}
+              {onboardingStep === 1 && (
+                <div className="p-8">
+                  <div className="text-center mb-8">
+                    <div className="text-6xl mb-4">🌟</div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome!</h2>
+                    <p className="text-gray-600">Let's personalize your experience</p>
+                  </div>
+                  
+                  <div className="space-y-4 mb-8">
+                    <button
+                      onClick={() => setOnboardingStep(2)}
+                      className="w-full p-4 rounded-xl border-2 border-purple-500 bg-purple-50 text-left hover:bg-purple-100 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🔗</span>
+                        <div>
+                          <p className="font-semibold text-gray-900">Import from ChatGPT</p>
+                          <p className="text-sm text-gray-600">Bring context ChatGPT knows about you</p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={skipOnboarding}
+                      className="w-full p-4 rounded-xl border-2 border-gray-200 text-left hover:border-gray-300 hover:bg-gray-50 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">✨</span>
+                        <div>
+                          <p className="font-semibold text-gray-900">Start fresh</p>
+                          <p className="text-sm text-gray-600">I'll learn about you as we talk</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    You can always add context later in Settings
+                  </p>
+                </div>
+              )}
+
+              {/* Step 2: Copy Prompt & Paste Response */}
+              {onboardingStep === 2 && (
+                <div className="p-8">
+                  <button
+                    onClick={() => setOnboardingStep(1)}
+                    className="text-gray-500 hover:text-gray-700 mb-4"
+                  >
+                    ← Back
+                  </button>
+                  
+                  <div className="text-center mb-6">
+                    <div className="text-4xl mb-2">📋</div>
+                    <h2 className="text-xl font-bold text-gray-900">Import from ChatGPT</h2>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {/* Step 2a: Copy prompt */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        1. Copy this prompt and send it to ChatGPT:
+                      </p>
+                      <div className="bg-gray-100 rounded-lg p-4 text-sm text-gray-700 relative">
+                        <pre className="whitespace-pre-wrap font-mono text-xs">{CHATGPT_IMPORT_PROMPT}</pre>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(CHATGPT_IMPORT_PROMPT);
+                            setMemoryToast('Prompt copied!');
+                            setTimeout(() => setMemoryToast(null), 2000);
+                          }}
+                          className="absolute top-2 right-2 px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 transition-all"
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Step 2b: Paste response */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        2. Paste ChatGPT's response here:
+                      </p>
+                      <textarea
+                        value={chatGPTResponse}
+                        onChange={(e) => setChatGPTResponse(e.target.value)}
+                        placeholder="Paste ChatGPT's response about you here..."
+                        className="w-full h-40 p-4 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-sm"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={() => parseContextFromChatGPT(chatGPTResponse)}
+                      disabled={!chatGPTResponse.trim() || isParsingContext}
+                      className={`w-full py-3 rounded-xl font-semibold text-white transition-all ${
+                        chatGPTResponse.trim() && !isParsingContext
+                          ? 'bg-purple-500 hover:bg-purple-600'
+                          : 'bg-gray-300 cursor-not-allowed'
+                      }`}
+                    >
+                      {isParsingContext ? '✨ Analyzing...' : 'Import Context →'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Review & Confirm */}
+              {onboardingStep === 3 && (
+                <div className="p-8">
+                  <button
+                    onClick={() => setOnboardingStep(2)}
+                    className="text-gray-500 hover:text-gray-700 mb-4"
+                  >
+                    ← Back
+                  </button>
+                  
+                  <div className="text-center mb-6">
+                    <div className="text-4xl mb-2">✨</div>
+                    <h2 className="text-xl font-bold text-gray-900">Here's what I learned</h2>
+                    <p className="text-sm text-gray-600">Review and edit before saving</p>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {/* Facts Section */}
+                    {parsedFacts.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          📋 Facts I'll remember:
+                        </p>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {parsedFacts.map((fact, index) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
+                              <span className="text-purple-600">•</span>
+                              <input
+                                type="text"
+                                value={fact}
+                                onChange={(e) => {
+                                  const newFacts = [...parsedFacts];
+                                  newFacts[index] = e.target.value;
+                                  setParsedFacts(newFacts);
+                                }}
+                                className="flex-1 bg-transparent text-sm text-gray-800 focus:outline-none"
+                              />
+                              <button
+                                onClick={() => {
+                                  setParsedFacts(parsedFacts.filter((_, i) => i !== index));
+                                }}
+                                className="text-gray-400 hover:text-red-500"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* About Me Section */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        💭 About you (for context):
+                      </p>
+                      <textarea
+                        value={parsedAboutMe}
+                        onChange={(e) => setParsedAboutMe(e.target.value)}
+                        placeholder="A brief description of yourself, your preferences, and current situation..."
+                        className="w-full h-24 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-sm"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={completeOnboarding}
+                      className="w-full py-3 rounded-xl font-semibold text-white bg-green-500 hover:bg-green-600 transition-all"
+                    >
+                      ✅ Looks good! Start chatting
+                    </button>
+                    
+                    <button
+                      onClick={skipOnboarding}
+                      className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

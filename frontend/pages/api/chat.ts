@@ -56,7 +56,7 @@ export default async function handler(
   }
 
   try {
-    const { message, conversationHistory, memories } = req.body;
+    const { message, conversationHistory, memories, userAboutMe, systemOverride } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'No message provided' });
@@ -65,12 +65,20 @@ export default async function handler(
     console.log('Processing chat message:', message);
     console.log('Conversation history length:', conversationHistory?.length || 0);
     console.log('Memories count:', memories?.length || 0);
+    console.log('Has About Me:', !!userAboutMe);
 
-    // Build system prompt with memories
-    let systemPrompt = SYSTEM_PROMPT;
-    if (memories && Array.isArray(memories) && memories.length > 0) {
+    // Build system prompt with context
+    let systemPrompt = systemOverride || SYSTEM_PROMPT;
+    
+    // Add "About Me" context if provided
+    if (userAboutMe && !systemOverride) {
+      systemPrompt += `\n\n===== ABOUT THE USER =====\n${userAboutMe}\n==========================\n\nUse this context to personalize your responses and understand their perspective.`;
+    }
+    
+    // Add memories if provided
+    if (memories && Array.isArray(memories) && memories.length > 0 && !systemOverride) {
       const memoryText = memories.map((mem: any) => `- ${mem.fact}`).join('\n');
-      systemPrompt += `\n\n===== IMPORTANT: What I know about you =====\n${memoryText}\n=============================================\n\nUse these facts naturally in our conversation when relevant.`;
+      systemPrompt += `\n\n===== FACTS I REMEMBER =====\n${memoryText}\n============================\n\nUse these facts naturally in our conversation when relevant.`;
     }
 
     // Build messages array with history
