@@ -973,7 +973,8 @@ ${response}
 Return ONLY valid JSON, no other text.`,
           conversationHistory: [],
           memories: [],
-          systemOverride: 'You are a helpful assistant that extracts structured information. Be thorough - extract ALL relevant facts and create a comprehensive About Me. Return only valid JSON.'
+          systemOverride: 'You are a JSON extraction assistant. You MUST return ONLY valid JSON - no apologies, no explanations, no markdown. Just the raw JSON object.',
+          maxTokens: 2000, // Need more tokens for 15-25 facts + 300 word about me
         }),
       });
 
@@ -983,10 +984,28 @@ Return ONLY valid JSON, no other text.`,
 
       const data = await parseResponse.json();
       
+      console.log(`[${new Date().toISOString()}] 📥 AI response received:`, data.text?.substring(0, 200) + '...');
+      
       // Try to parse the AI response as JSON
       try {
         // Extract JSON from the response (it might be wrapped in markdown code blocks)
         let jsonStr = data.text;
+        
+        // Check if it looks like an error/apology instead of JSON
+        if (jsonStr.toLowerCase().startsWith('i apologize') || 
+            jsonStr.toLowerCase().startsWith('i\'m sorry') ||
+            jsonStr.toLowerCase().startsWith('sorry')) {
+          console.warn('AI returned an apology instead of JSON. Using fallback.');
+          throw new Error('AI refused to parse - returned apology');
+        }
+        
+        // Try to extract JSON from markdown code blocks
+        const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          jsonStr = codeBlockMatch[1].trim();
+        }
+        
+        // Try to extract just the JSON object
         const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           jsonStr = jsonMatch[0];
@@ -996,12 +1015,13 @@ Return ONLY valid JSON, no other text.`,
         const facts = parsed.facts || [];
         const aboutMe = parsed.aboutMe || '';
         
-        console.log(`[${new Date().toISOString()}] ✅ Parsed ${facts.length} facts, About Me: ${aboutMe.length} chars`);
+        console.log(`[${new Date().toISOString()}] ✅ Successfully parsed ${facts.length} facts, About Me: ${aboutMe.length} chars`);
         setParsedFacts(facts);
         setParsedAboutMe(aboutMe);
         setOnboardingStep(3);
       } catch (parseError) {
         console.error('Failed to parse JSON:', parseError);
+        console.log('Raw AI response was:', data.text?.substring(0, 500));
         // Fallback: keep the FULL original response as "about me"
         setParsedFacts([]);
         setParsedAboutMe(response); // Keep FULL response, not truncated!

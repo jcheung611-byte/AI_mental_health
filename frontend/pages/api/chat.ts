@@ -56,16 +56,18 @@ export default async function handler(
   }
 
   try {
-    const { message, conversationHistory, memories, userAboutMe, systemOverride } = req.body;
+    const { message, conversationHistory, memories, userAboutMe, systemOverride, maxTokens } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'No message provided' });
     }
 
-    console.log('Processing chat message:', message);
+    console.log('Processing chat message:', message.substring(0, 100) + '...');
     console.log('Conversation history length:', conversationHistory?.length || 0);
     console.log('Memories count:', memories?.length || 0);
     console.log('Has About Me:', !!userAboutMe);
+    console.log('Max tokens:', maxTokens || 500);
+    console.log('System override:', !!systemOverride);
 
     // Build system prompt with context
     let systemPrompt = systemOverride || SYSTEM_PROMPT;
@@ -111,8 +113,8 @@ export default async function handler(
     const completion = await openai.chat.completions.create({
       model: 'gpt-5.1',
       messages: messages,
-      temperature: 0.8,
-      max_completion_tokens: 500,
+      temperature: systemOverride ? 0.3 : 0.8, // Lower temp for structured extraction
+      max_completion_tokens: maxTokens || 500,
     });
 
     const responseText = completion.choices[0]?.message?.content || 'I apologize, I couldn\'t generate a response.';
