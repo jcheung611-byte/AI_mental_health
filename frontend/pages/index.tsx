@@ -61,6 +61,7 @@ export default function Home() {
   // Onboarding
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<number>(1);
+  const [selectedOnboardingOption, setSelectedOnboardingOption] = useState<'chatgpt' | 'fresh' | null>(null);
   const [chatGPTResponse, setChatGPTResponse] = useState<string>('');
   const [parsedFacts, setParsedFacts] = useState<string[]>([]);
   const [parsedAboutMe, setParsedAboutMe] = useState<string>('');
@@ -2155,21 +2156,39 @@ Return ONLY valid JSON, no other text.`,
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               transition={{ duration: 0.3 }}
-              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative"
             >
+              {/* X button - top right */}
+              <button
+                onClick={() => {
+                  setShowOnboardingModal(false);
+                  localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+                }}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors z-10"
+                aria-label="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
               {/* Step 1: Welcome */}
               {onboardingStep === 1 && (
-                <div className="p-8">
+                <div className="p-8 pb-6">
                   <div className="text-center mb-8">
                     <div className="text-6xl mb-4">🌟</div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome!</h2>
                     <p className="text-gray-600">Let's personalize your experience</p>
                   </div>
                   
-                  <div className="space-y-4 mb-8">
+                  <div className="space-y-4 mb-6">
                     <button
-                      onClick={() => setOnboardingStep(2)}
-                      className="w-full p-4 rounded-xl border-2 border-purple-500 bg-purple-50 text-left hover:bg-purple-100 transition-all"
+                      onClick={() => setSelectedOnboardingOption('chatgpt')}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        selectedOnboardingOption === 'chatgpt'
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">🔗</span>
@@ -2181,8 +2200,12 @@ Return ONLY valid JSON, no other text.`,
                     </button>
                     
                     <button
-                      onClick={skipOnboarding}
-                      className="w-full p-4 rounded-xl border-2 border-gray-200 text-left hover:border-gray-300 hover:bg-gray-50 transition-all"
+                      onClick={() => setSelectedOnboardingOption('fresh')}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        selectedOnboardingOption === 'fresh'
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">✨</span>
@@ -2194,9 +2217,39 @@ Return ONLY valid JSON, no other text.`,
                     </button>
                   </div>
                   
-                  <p className="text-xs text-gray-500 text-center">
+                  <p className="text-xs text-gray-500 text-center mb-6">
                     You can always add context later in Settings
                   </p>
+                  
+                  {/* Bottom buttons: Skip & Confirm */}
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => {
+                        setShowOnboardingModal(false);
+                        localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+                      }}
+                      className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      Skip
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (selectedOnboardingOption === 'chatgpt') {
+                          setOnboardingStep(2);
+                        } else if (selectedOnboardingOption === 'fresh') {
+                          skipOnboarding();
+                        }
+                      }}
+                      disabled={!selectedOnboardingOption}
+                      className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                        selectedOnboardingOption
+                          ? 'bg-blue-500 text-white hover:bg-blue-600'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Confirm
+                    </button>
+                  </div>
                 </div>
               )}
 
