@@ -64,6 +64,9 @@ export default function Home() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<number>(1);
   const [selectedOnboardingOption, setSelectedOnboardingOption] = useState<'chatgpt' | 'fresh' | null>(null);
+  
+  // Text input auto-resize
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [chatGPTResponse, setChatGPTResponse] = useState<string>('');
   const [parsedFacts, setParsedFacts] = useState<string[]>([]);
   const [parsedAboutMe, setParsedAboutMe] = useState<string>('');
@@ -459,6 +462,21 @@ export default function Home() {
     loadAboutMe();
     checkOnboarding();
   }, []);
+
+  // Auto-resize textarea as text changes
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set height to scrollHeight (content height)
+    // Max height is 50vh (half viewport), then it scrolls
+    const maxHeight = window.innerHeight * 0.5;
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  }, [textInput]);
 
   // Manual save function to save to both Supabase and localStorage
   const saveMessagesToStorage = async (messagesToSave: Message[]) => {
@@ -1780,13 +1798,25 @@ Return ONLY valid JSON, no other text.`,
                   compact
                 />
                 
-                {/* Text Input */}
-                <input
-                  type="text"
+                {/* Text Input - Auto-expanding */}
+                <textarea
+                  ref={textareaRef}
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Submit on Enter (unless Shift+Enter for new line)
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleTextSubmit(e as any);
+                    }
+                  }}
                   placeholder={isProcessing ? "Transcribing..." : "Type message or use mic..."}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
+                  rows={1}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 resize-none overflow-y-auto"
+                  style={{ 
+                    minHeight: '42px',
+                    maxHeight: '50vh',
+                  }}
                 />
                 
                 {/* Send Button */}
