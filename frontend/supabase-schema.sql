@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS memories (
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   about_me TEXT,
+  instructions TEXT,
   mode TEXT DEFAULT 'friend' CHECK (mode IN ('friend', 'helper', 'mentor')),
   voice TEXT DEFAULT 'nova',
   model TEXT DEFAULT 'tts-1',

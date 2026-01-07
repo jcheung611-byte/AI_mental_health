@@ -26,6 +26,7 @@ const STORAGE_KEY = 'ai-voice-conversations';
 const MEMORY_STORAGE_KEY = 'ai-voice-memories';
 const MEMORY_ENABLED_KEY = 'ai-voice-memory-enabled';
 const ABOUT_ME_KEY = 'ai-voice-about-me';
+const INSTRUCTIONS_KEY = 'ai-voice-instructions';
 const ONBOARDING_COMPLETE_KEY = 'ai-voice-onboarding-complete';
 
 export default function Home() {
@@ -59,6 +60,7 @@ export default function Home() {
   
   // About Me / User Context
   const [userAboutMe, setUserAboutMe] = useState<string>('');
+  const [userInstructions, setUserInstructions] = useState<string>('');
   
   // Onboarding
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
@@ -413,6 +415,18 @@ export default function Home() {
       }
     };
 
+    const loadInstructions = () => {
+      try {
+        const storedInstructions = localStorage.getItem(INSTRUCTIONS_KEY);
+        if (storedInstructions) {
+          setUserInstructions(storedInstructions);
+          console.log(`[${new Date().toISOString()}] 📋 Loaded Instructions: ${storedInstructions.substring(0, 50)}...`);
+        }
+      } catch (error) {
+        console.error('Failed to load Instructions:', error);
+      }
+    };
+
     const checkOnboarding = async () => {
       try {
         // Check Supabase first (persists across deployments)
@@ -460,6 +474,7 @@ export default function Home() {
     loadMemorySettings();
     loadVoiceSettings();
     loadAboutMe();
+    loadInstructions();
     checkOnboarding();
   }, []);
 
@@ -584,6 +599,17 @@ export default function Home() {
       console.error('Failed to save About Me:', error);
     }
   }, [userAboutMe]);
+
+  // Save Instructions whenever they change
+  useEffect(() => {
+    try {
+      if (userInstructions) {
+        localStorage.setItem(INSTRUCTIONS_KEY, userInstructions);
+      }
+    } catch (error) {
+      console.error('Failed to save Instructions:', error);
+    }
+  }, [userInstructions]);
 
   // Auto-scroll to bottom when new messages arrive (only if near bottom)
   useEffect(() => {
@@ -1227,6 +1253,7 @@ Return ONLY valid JSON, no other text.`,
           conversationHistory: conversationHistory,
           memories: memories,
           userAboutMe: userAboutMe,
+          userInstructions: userInstructions,
         }),
       });
 
@@ -1948,6 +1975,23 @@ Return ONLY valid JSON, no other text.`,
                       🔗 Import from ChatGPT
                     </button>
                   )}
+                </div>
+
+                {/* Instructions Section */}
+                <div className="border-b border-gray-200 pb-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">🎯 Response Instructions</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Tell me how you'd like me to respond - your preferred tone, style, and approach.
+                  </p>
+                  <textarea
+                    value={userInstructions}
+                    onChange={(e) => setUserInstructions(e.target.value)}
+                    placeholder="e.g., 'Match my energy - if I'm casual, be casual. Keep responses concise unless I'm venting. Use direct feedback, no sugarcoating.'"
+                    className="w-full h-32 p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none resize-y text-sm"
+                  />
+                  <p className="mt-2 text-xs text-gray-500">
+                    💡 Examples: "Be direct and concise" • "Match my vibe" • "Use formatting for clarity" • "Keep it brief unless I'm processing something heavy"
+                  </p>
                 </div>
 
                 {/* Memory Settings Section */}

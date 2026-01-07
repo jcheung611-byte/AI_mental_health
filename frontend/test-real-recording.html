@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Recording Pipeline Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #fff;
+        }
+        .container {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #9ca3af;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+        }
+        button.recording {
+            background: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+        button.danger {
+            background: #dc2626;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .status {
+            margin: 15px 0;
+            padding: 15px;
+            background: #374151;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .log {
+            background: #111;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .log div {
+            margin: 3px 0;
+        }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .success { color: #10b981; }
+        .info { color: #60a5fa; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat {
+            background: #374151;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .stat-label {
+            color: #9ca3af;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        select, input {
+            background: #374151;
+            color: white;
+            border: 1px solid #4b5563;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #374151;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Real Recording Pipeline Test</h1>
+        <p class="subtitle">Test the ACTUAL frontend recording → transcription pipeline with real WebM audio</p>
+
+        <div class="test-section">
+            <h3>Test Configuration</h3>
+            <label>
+                Target Duration:
+                <select id="duration">
+                    <option value="10">10 seconds (baseline)</option>
+                    <option value="30">30 seconds</option>
+                    <option value="60">1 minute</option>
+                    <option value="120">2 minutes</option>
+                    <option value="180">3 minutes</option>
+                    <option value="300">5 minutes</option>
+                    <option value="360">6 minutes (approaching limit)</option>
+                    <option value="420">7 minutes (CRITICAL - should fail)</option>
+                    <option value="600">10 minutes (WAY over limit)</option>
+                </select>
+            </label>
+            <label>
+                <input type="checkbox" id="addNoise"> Add realistic mic noise/artifacts
+            </label>
+            <label>
+                API Base:
+                <select id="apiBase">
+                    <option value="https://ai-mental-health-seven.vercel.app">Vercel (Production)</option>
+                    <option value="http://localhost:3000">Localhost (Dev)</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="test-section">
+            <h3>Recording Controls</h3>
+            <button id="startBtn" onclick="startTest()">▶️ Start Recording Test</button>
+            <button id="stopBtn" onclick="stopRecording()" disabled>⏹️ Stop Recording</button>
+            <button onclick="clearLog()">🗑️ Clear Log</button>
+            
+            <div class="progress">
+                <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            
+            <div class="status" id="status">Ready to test...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Current Test Results</h3>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Recording Duration</div>
+                    <div class="stat-value" id="recordDuration">--</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">File Size (WebM)</div>
+                    <div class="stat-value" id="fileSize">--</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">% of 4.5MB Limit</div>
+                    <div class="stat-value" id="percentLimit">--</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Transcription</div>
+                    <div class="stat-value" id="transcriptionStatus">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Transcription Result</h3>
+            <div class="status" id="transcription" style="min-height: 100px;">
+                Transcription will appear here after recording...
+            </div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let startTime = 0;
+        let recordingInterval = null;
+        let targetDuration = 10;
+        let audioContext = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function startTest() {
+            try {
+                targetDuration = parseInt(document.getElementById('duration').value);
+                const addNoise = document.getElementById('addNoise').checked;
+                
+                log(`🎬 Starting ${targetDuration}s recording test...`, 'info');
+                log(`📍 Testing against: ${document.getElementById('apiBase').value}`, 'info');
+                
+                // Request microphone access
+                log('🎤 Requesting microphone access...', 'info');
+                let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Add noise if requested
+                if (addNoise) {
+                    log('🔊 Adding realistic mic artifacts...', 'warning');
+                    stream = await addMicArtifacts(stream);
+                }
+                
+                // Setup MediaRecorder
+                const options = { mimeType: 'audio/webm;codecs=opus' };
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+                startTime = Date.now();
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => processRecording();
+                
+                mediaRecorder.start(100);
+                log(`✅ Recording started (${options.mimeType})`, 'success');
+                updateStatus(`🔴 Recording... (target: ${targetDuration}s)`);
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('startBtn').classList.add('recording');
+                document.getElementById('stopBtn').disabled = false;
+                
+                // Update progress
+                recordingInterval = setInterval(updateProgress, 100);
+                
+                // Auto-stop at target duration
+                setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        log(`⏰ Target duration reached (${targetDuration}s), stopping...`, 'warning');
+                        stopRecording();
+                    }
+                }, targetDuration * 1000);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                updateStatus('Error starting recording');
+            }
+        }
+
+        function updateProgress() {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const progress = Math.min((elapsed / targetDuration) * 100, 100);
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('recordDuration').textContent = elapsed.toFixed(1) + 's';
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                clearInterval(recordingInterval);
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                log('⏹️ Recording stopped', 'info');
+                updateStatus('Processing...');
+                
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtn').classList.remove('recording');
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        async function processRecording() {
+            try {
+                const duration = (Date.now() - startTime) / 1000;
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(2);
+                const percentLimit = ((audioBlob.size / (4.5 * 1024 * 1024)) * 100).toFixed(1);
+                
+                log(`📊 Recording complete:`, 'success');
+                log(`   Duration: ${duration.toFixed(1)}s`, 'info');
+                log(`   Size: ${sizeMB} MB`, 'info');
+                log(`   Limit: ${percentLimit}% of 4.5MB`, percentLimit > 100 ? 'error' : percentLimit > 80 ? 'warning' : 'success');
+                
+                document.getElementById('fileSize').textContent = sizeMB + ' MB';
+                document.getElementById('percentLimit').textContent = percentLimit + '%';
+                document.getElementById('percentLimit').style.color = percentLimit > 100 ? '#ef4444' : percentLimit > 80 ? '#f59e0b' : '#10b981';
+                
+                if (audioBlob.size > 4.5 * 1024 * 1024) {
+                    log(`🚨 BOTTLENECK IDENTIFIED: File exceeds Vercel 4.5MB limit!`, 'error');
+                    document.getElementById('transcriptionStatus').textContent = '❌ Too Large';
+                    document.getElementById('transcriptionStatus').style.color = '#ef4444';
+                    updateStatus(`❌ File too large (${sizeMB} MB > 4.5 MB) - This is your bottleneck!`);
+                    return;
+                }
+                
+                // Attempt transcription
+                log('🎙️ Sending to transcription API...', 'info');
+                updateStatus('Transcribing...');
+                document.getElementById('transcriptionStatus').textContent = '⏳ Processing...';
+                
+                const apiBase = document.getElementById('apiBase').value;
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+                
+                const startTranscribe = Date.now();
+                const response = await fetch(`${apiBase}/api/transcribe`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const transcribeTime = ((Date.now() - startTranscribe) / 1000).toFixed(2);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Transcription failed (${response.status}): ${errorText.substring(0, 200)}`, 'error');
+                    document.getElementById('transcriptionStatus').textContent = `❌ Failed (${response.status})`;
+                    document.getElementById('transcriptionStatus').style.color = '#ef4444';
+                    
+                    if (response.status === 413) {
+                        log(`🚨 BOTTLENECK: 413 Payload Too Large - Exceeded Vercel limit!`, 'error');
+                        updateStatus(`❌ 413 Error: File too large for Vercel (${sizeMB} MB)`);
+                    } else if (response.status === 504) {
+                        log(`🚨 BOTTLENECK: 504 Gateway Timeout - Processing took too long!`, 'error');
+                        updateStatus(`❌ 504 Error: Transcription timeout`);
+                    } else {
+                        updateStatus(`❌ Error ${response.status}: Transcription failed`);
+                    }
+                    return;
+                }
+                
+                const result = await response.json();
+                log(`✅ Transcription successful (${transcribeTime}s)`, 'success');
+                log(`📝 Text: "${result.text.substring(0, 100)}..."`, 'info');
+                
+                document.getElementById('transcriptionStatus').textContent = '✅ Success';
+                document.getElementById('transcriptionStatus').style.color = '#10b981';
+                document.getElementById('transcription').textContent = result.text;
+                updateStatus(`✅ Test complete! (${duration.toFixed(1)}s recording, ${transcribeTime}s transcription)`);
+                
+            } catch (error) {
+                log(`❌ Processing error: ${error.message}`, 'error');
+                document.getElementById('transcriptionStatus').textContent = '❌ Error';
+                updateStatus('Error processing recording');
+            }
+        }
+
+        async function addMicArtifacts(stream) {
+            // Add realistic microphone artifacts (background noise, slight distortion)
+            audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(stream);
+            const destination = audioContext.createMediaStreamDestination();
+            
+            // Create noise generator (simulates mic background noise)
+            const noise = audioContext.createScriptProcessor(4096, 1, 1);
+            noise.onaudioprocess = (e) => {
+                const output = e.outputBuffer.getChannelData(0);
+                for (let i = 0; i < output.length; i++) {
+                    output[i] = (Math.random() * 2 - 1) * 0.02; // Low-level white noise
+                }
+            };
+            
+            // Add slight compression (simulates cheap mic quality)
+            const compressor = audioContext.createDynamicsCompressor();
+            compressor.threshold.value = -24;
+            compressor.knee.value = 30;
+            compressor.ratio.value = 12;
+            compressor.attack.value = 0.003;
+            compressor.release.value = 0.25;
+            
+            // Connect: original audio + noise → compressor → output
+            source.connect(compressor);
+            noise.connect(destination);
+            compressor.connect(destination);
+            
+            return destination.stream;
+        }
+
+        log('🚀 Real Recording Pipeline Test loaded', 'success');
+        log('ℹ️ This tests the ACTUAL frontend → backend flow', 'info');
+        log('ℹ️ Tests WebM audio with real file sizes', 'info');
+        log('⚠️ Make sure to allow microphone access!', 'warning');
+    </script>
+</body>
+</html>
+

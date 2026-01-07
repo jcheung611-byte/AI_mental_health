@@ -8,9 +8,12 @@
 ## 📊 Current Status
 
 **Current Phase:** Phase 1 - Foundation + Relationship Building  
-**Current Feature:** Hybrid Recording System  
+**Current Feature:** UX Polish & Refinement  
 **Days in Development:** 3  
-**Commits:** 10+
+**Commits:** 20  
+**Latest Commit:** 2446c81 ✅ (Auto-expanding text input)  
+**Deployment:** ✅ Live on Vercel  
+**Status:** ✅ Core features polished - ready for user testing!
 
 ---
 
@@ -55,10 +58,397 @@
 
 ### **Jan 6, 2026**
 
-#### 🚀 Hybrid Upload Strategy - IMPLEMENTED! (No Commit Yet)
+#### ✨ Auto-Expanding Text Input with Scrolling ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** UX Enhancement  
+**Commit:** 2446c81  
+**Status:** ✅ Deployed to Vercel
+
+**Problem:**
+- Single-line input box
+- Long messages hidden or scroll horizontally
+- Hard to compose multi-line messages
+- Poor editing experience
+
+**Solution:**
+- Changed `<input>` to `<textarea>`
+- Auto-expands vertically as user types
+- Max height: 50% of viewport
+- Scrollable when exceeds max height
+- Starts compact, grows with content
+
+**New Behavior:**
+```
+1. Start: Single line (42px height)
+2. Type more → Box expands downward ✅
+3. Keep typing → Expands to half screen
+4. Exceeds half screen → Scrollbar appears ✅
+5. Shift+Enter → New line
+6. Enter → Send message
+```
+
+**Technical Implementation:**
+- Added `textareaRef` with `useRef<HTMLTextAreaElement>`
+- `useEffect` monitors `textInput` changes
+- Auto-calculates `scrollHeight` for content
+- Sets height to `Math.min(scrollHeight, 50vh)`
+- CSS: `resize-none`, `overflow-y: auto`, `rounded-2xl`
+- Min height: 42px, Max height: 50vh
+
+**Benefits:**
+- ✅ Compose longer messages comfortably
+- ✅ See full message before sending
+- ✅ Natural multi-line editing
+- ✅ Responsive to screen size
+- ✅ Better UX for voice + text mixing
+
+**User Requested:** "expand vertically to fit text (to a limit--maybe half the window), then vertically scrollable"
+
+---
+
+#### 🎨 Voice Recordings → Text Input (No Auto-Send) ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** UX Improvement  
+**Commit:** 905db0c  
+**Status:** ✅ Deployed to Vercel
+
+**Problem:**
+- Voice recordings auto-sent immediately
+- No control over when message sends
+- Can't compose multi-part messages
+- Can't edit transcriptions before sending
+- Accidental sends
+
+**Solution:**
+- Voice recordings now transcribe into text input
+- User can record multiple times (text appends with space)
+- User can edit the transcription
+- User manually sends via Enter or Send button
+
+**New Flow:**
+```
+1. Click mic → Speak → Click mic again
+2. Transcription appears in text input ✅
+3. Click mic again → Record more → Appends to text ✅
+4. Edit text if needed ✅
+5. Hit Enter or click Send to send ✅
+```
+
+**Benefits:**
+- ✅ Full control over message composition
+- ✅ Mix voice + typing seamlessly
+- ✅ Review/edit before sending
+- ✅ Prevents accidental sends
+- ✅ More natural workflow
+
+**Technical Changes:**
+- Removed auto-send logic from `handleAudioRecorded`
+- Transcription appends to `textInput` state
+- Status updates: "Transcription complete - Edit or send message"
+- Placeholder: "Type message or use mic..."
+- Simplified codebase: -142 lines of auto-send logic
+
+**Why This Matters:**
+- User reported as "papercut" (small but annoying issue)
+- Much better UX and control
+- Enables composing longer, more thoughtful messages
+- Reduces cognitive load (user decides when to send)
+
+---
+
+#### ✨ Memory Filter Pills + Import Persistence ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Feature (Major Enhancement!)  
+**Commit:** f0fd94a  
+**Status:** ✅ Deployed to Vercel
+
+**Features Added:**
+
+**1. Memory Filter Pills:**
+- Filter memories by: All, Imported, Learned
+- Pill badges with counts: `[All (12)] [Imported (5)] [Learned (7)]`
+- Active filter highlighted in purple
+- "Clear filter" button when active
+- Empty state when no matching memories
+
+**2. Persist ChatGPT Import:**
+- Original import text saved to Supabase
+- Onboarding completion status in database
+- Survives deployments & device switches
+- Fallback to localStorage for compatibility
+
+**Database Changes:**
+- Added `chatgpt_imports` table (stores original text + metadata)
+- Added `onboarding_complete` to `user_settings` table
+- Enables viewing/editing original import later
+
+**Why This Matters:**
+- User requested: "chatgpt import disappears upon re-deployment"
+- Now persists across deployments ✅
+- Foundation for memory management features
+- User can filter & organize memories
+- Original import preserved for transparency
+
+**User Flow:**
+1. Complete ChatGPT import → Saved to Supabase
+2. Vercel redeploys → Data persists ✅
+3. Filter memories by source → Clear organization
+4. View original import (coming soon)
+
+**Next Steps:**
+- Add "View Original Import" button
+- Add "Reset & Re-import" functionality
+- Explore RAG for smarter context retrieval
+
+**Files Changed:**
+- `frontend/pages/index.tsx` - Filter UI + persistence logic
+- `frontend/supabase-schema.sql` - New tables & columns
+
+---
+
+#### 🐛 TypeScript Compilation Fix ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Bug Fix (Build Blocker!)  
+**Commit:** b6bad19  
+**Status:** ✅ Deployed to Vercel
+
+**The Issue:**
+```
+Type error: Argument of type 'void' is not assignable to parameter of type 'MediaStream'.
+Next.js build worker exited with code: 1
+```
+
+**Root Cause:**
+- VoiceButton needs MediaStream for audio waveform visualization
+- AudioRecorder.startRecording() returned `Promise<void>`
+- TypeScript couldn't compile: expected MediaStream, got void
+
+**The Fix:**
+Changed return type from `Promise<void>` to `Promise<MediaStream>`:
+```typescript
+// Before
+async startRecording(): Promise<void> {
+  this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  // ... setup ...
+}
+
+// After
+async startRecording(): Promise<MediaStream> {
+  this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  // ... setup ...
+  return this.stream; // Now returns the stream!
+}
+```
+
+**Impact:**
+- ✅ Build succeeds
+- ✅ Audio visualization works
+- ✅ No breaking changes
+
+**Files Changed:**
+- `frontend/utils/audioRecorder.ts` - Updated return type
+
+---
+
+#### ✨ Memory Source Tags ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Feature Enhancement  
+**Commit:** 46f4133  
+**Status:** ✅ Deployed to Vercel
+
+**What Was Added:**
+Visual tags to distinguish imported memories from conversation-extracted memories.
+
+**The Feature:**
+- Memories now track their `source`: `'import'` or `'conversation'`
+- Imported memories (from ChatGPT) show a purple "From Import" badge
+- Conversation-extracted memories show no badge (default)
+- Helps users understand where their context came from
+
+**UI:**
+```
+🧠 Memory System
+┌─────────────────────────────────────────┐
+│ User's name is Jordan                   │
+│ [From Import]                           │ ← Purple badge
+│ Jan 6, 2026                             │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ Prefers 2x speed for audio              │
+│ Jan 6, 2026                             │ ← No badge
+└─────────────────────────────────────────┘
+```
+
+**Technical:**
+- Added `source?: 'import' | 'conversation'` to Memory type
+- Updated onboarding flow to tag imported memories
+- Updated extract-memory flow to tag conversation memories
+- Updated Supabase schema with source column
+- Persists source in both localStorage & Supabase
+
+**Future Expansion:**
+- Filter memories by source
+- Stats: "X imported, Y learned"
+- Different colors for different sources
+- Export/import memory sets
+- Show source distribution chart
+
+**Files Changed:**
+- `frontend/pages/index.tsx` - Type, logic, UI
+- `frontend/supabase-schema.sql` - Added source column
+
+**Why This Matters:**
+- User requested: "think the memories could be a cool feature to build up more in the future"
+- Foundation for memory management features
+- Helps users audit their context
+- Provides transparency about data sources
+- Enables future filtering & organization
+
+---
+
+#### 🐛 Text Input UX Fixes ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Bug Fix (UX Critical!)  
+**Commit:** 20d053c  
+**Status:** ✅ Deployed to Vercel
+
+**Issues Fixed:**
+
+**Issue #1: Enter key triggered mic button**
+- User typed message and pressed Enter
+- Mic button activated instead of sending message
+- Root cause: VoiceButton missing `type="button"`
+- In forms, buttons default to `type="submit"`
+
+**Issue #2: User message delayed appearance**
+- User message actually appeared immediately (correct)
+- But AI response showed empty space while loading
+- Looked like message was delayed (confusing UX)
+
+**The Fixes:**
+1. Added `type="button"` to VoiceButton (both compact & full mode)
+2. Added "Thinking..." spinner for AI response loading state
+3. Better visual feedback during AI generation
+
+**UX Flow Now:**
+1. User types message, presses Enter ✅
+2. Message appears immediately in chat ✅
+3. AI response shows "🔄 Thinking..." spinner ✅
+4. Text streams in word-by-word (existing behavior) ✅
+5. Audio generates in parallel ✅
+6. Play button appears when ready ✅
+
+**Files Changed:**
+- `frontend/components/VoiceButton.tsx` - Added `type="button"`
+- `frontend/pages/index.tsx` - Added loading spinner UI
+
+**User Impact:**
+- Enter key now works as expected ✅
+- Clear feedback during AI response generation ✅
+- No more confusing empty space ✅
+- Professional, polished UX ✅
+
+---
+
+#### ✨ Onboarding Modal UX Improvements ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Feature Enhancement (UX Polish)  
+**Commit:** b0356e1  
+**Status:** ✅ Deployed to Vercel
+
+**What Was Added:**
+- X button in top right corner (dismiss modal)
+- Options are now selectable (highlight on click)
+- Grey "Skip" button in bottom right
+- Blue "Confirm" button (enabled when option selected)
+- Better visual feedback and button hierarchy
+
+**Why This Matters:**
+- More control for users (can review before committing)
+- Professional polish (matches modern app UX standards)
+- Clear exit/skip options
+- Better accessibility and visual states
+
+**UX Flow:**
+1. User sees modal with 2 options
+2. Clicks an option → Highlights purple
+3. Can change selection
+4. Three choices: X button, Skip, or Confirm
+5. Confirm proceeds with selected option
+
+**Files Changed:**
+- `frontend/pages/index.tsx` - Updated modal UI and button logic
+- Added state: `selectedOnboardingOption`
+
+**Testing:**
+- ✅ TypeScript compilation passes
+- ✅ No linter errors
+- 🧪 Ready for live user testing
+
+---
+
+#### 🐛 Compilation Fix - Duplicate Variable ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Bug Fix (BLOCKER!)  
+**Commit:** 09a3846  
+**Status:** ✅ Deployed to Vercel - Fixed
+
+**The Issue:**
+Vercel build failing: "Cannot redeclare block-scoped variable 'audioUrl'"
+
+**Root Cause:**
+- Two `audioUrl` variables in same function scope
+- Line 1311: User's recording URL (Supabase Storage)
+- Line 1515: AI's voice URL (TTS playback)
+- TypeScript redeclaration error → build fails
+
+**The Fix:**
+- Renamed line 1515: `audioUrl` → `aiAudioUrl`
+- Clarifies purpose of each variable
+- Build now succeeds ✅
+
+**Files Changed:**
+- `frontend/pages/index.tsx` - Renamed TTS audio variable
+
+---
+
+#### 🐛 Critical Bug Fix - Chat API Model Name ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** Bug Fix (CRITICAL!)  
+**Commit:** 769799f  
+**Status:** ✅ Deployed to Vercel - Fixed
+
+**The Issue:**
+User reported: "I apologize, I couldn't generate a response" error on live app.
+
+**Root Cause:**
+- `/api/chat.ts` was calling `gpt-5.1` which doesn't exist
+- `/api/extract-memory.ts` also had same invalid model
+- OpenAI API rejected requests → generic error message shown
+
+**The Fix:**
+- Changed model from `gpt-5.1` → `gpt-4o` (latest OpenAI model)
+- Updated both API endpoints
+- Deployed to Vercel immediately
+
+**Impact:**
+- Chat functionality now works ✅
+- Memory extraction works ✅
+- Users can have conversations ✅
+
+**Files Changed:**
+- `frontend/pages/api/chat.ts` - Fixed model name
+- `frontend/pages/api/extract-memory.ts` - Fixed model name
+
+---
+
+#### 🚀 Hybrid Upload Strategy - DEPLOYED! ✅
 **Phase:** Phase 1 - Foundation  
 **Feature:** Unlimited Recording + Voice Journal Library  
-**Type:** Feature (MAJOR!)
+**Type:** Feature (MAJOR!)  
+**Commit:** 44e7053  
+**Status:** ✅ Deployed to Vercel - Testing Phase
 
 **What Was Built:**
 A hybrid upload + transcription strategy that removes the 7-minute recording limit while maintaining zero latency for most users.
