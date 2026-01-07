@@ -30,7 +30,7 @@ const ONBOARDING_COMPLETE_KEY = 'ai-voice-onboarding-complete';
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [status, setStatus] = useState<string>('Ready - Click to speak');
+  const [status, setStatus] = useState<string>('Ready - Use mic or type to compose');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>('');
   const [textInput, setTextInput] = useState<string>('');
@@ -1466,149 +1466,24 @@ Return ONLY valid JSON, no other text.`,
       
       console.log(`[${timestamp}] ✅ Final transcription (${transcribedText.length} chars):`, transcribedText.substring(0, 100) + '...');
       
-      // Save user message to database with audio URL
-      const userMessageId = crypto.randomUUID();
-      
-      // Save to Supabase
-      const { error: dbError } = await supabase.from('messages').insert({
-        id: userMessageId,
-        user_id: DEFAULT_USER_ID,
-        role: 'user',
-        text: transcribedText,
-        audio_url: audioUrl, // Voice Journal Library!
-        created_at: new Date().toISOString(),
+      // Append transcribed text to the text input box
+      // Add a space if there's already text, otherwise just add the transcription
+      setTextInput(prev => {
+        if (prev.trim()) {
+          return prev + ' ' + transcribedText;
+        }
+        return transcribedText;
       });
       
-      if (dbError) {
-        console.error(`[${timestamp}] ⚠️ Database save failed (non-critical):`, dbError);
-      } else {
-        console.log(`[${timestamp}] ✅ Message saved to database with audio URL`);
-      }
-      
-      // Add user message to UI
-      const userMessage: Message = {
-        id: userMessageId,
-        role: 'user',
-        text: transcribedText,
-        timestamp: new Date(),
-        audioUrl: audioUrl || undefined, // Include audio URL for playback!
-      };
-      setMessages(prev => {
-        const updated = [...prev, userMessage];
-        saveMessagesToStorage(updated);
-        return updated;
-      });
-      
-      setStatus('Getting AI response...');
-
-      // Step 2: Get chat response with conversation history
-      // Include all previous messages in the history for context
-      const conversationHistory = messages.map(msg => ({
-        role: msg.role,
-        text: msg.text,
-      }));
-      
-      console.log(`[${new Date().toISOString()}] 💬 Step 2: Sending to chat API with ${conversationHistory.length} previous messages + current message`);
-      
-      const chatResponse = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          message: transcribedText,
-          conversationHistory: conversationHistory,
-          memories: memories,
-          userAboutMe: userAboutMe,
-        }),
-      });
-
-      if (!chatResponse.ok) {
-        const errorData = await chatResponse.json().catch(() => ({}));
-        throw new Error(errorData.details || 'Chat failed');
-      }
-
-      const chatData = await chatResponse.json();
-      console.log(`[${new Date().toISOString()}] ✅ Chat response received:`, chatData.text);
-      
-      const fullText = chatData.text;
-      const assistantMessageId = crypto.randomUUID();
-      
-      // Add AI message with empty text initially (will stream in)
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        text: '',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      // Start TTS generation in parallel
-      setStatus('AI responding...');
-      console.log(`[${new Date().toISOString()}] 🔊 Step 3: Converting to speech (parallel)`);
-      const ttsPromise = fetch('/api/speak', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: fullText, voice: selectedVoice, model: selectedModel }),
-      });
-
-      // Stream text in chunks (simulate ChatGPT typing)
-      const words = fullText.split(' ');
-      const wordsPerChunk = 3; // Show 3 words at a time
-      const delayMs = 50; // 50ms between chunks
-      
-      for (let i = 0; i < words.length; i += wordsPerChunk) {
-        const chunk = words.slice(0, i + wordsPerChunk).join(' ');
-        setMessages(prev => prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, text: chunk }
-            : msg
-        ));
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-      
-      // Ensure full text is shown
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId 
-          ? { ...msg, text: fullText }
-          : msg
-      ));
-
-      // Wait for TTS to complete
-      setStatus('Finalizing audio...');
-      const ttsResponse = await ttsPromise;
-
-      if (!ttsResponse.ok) {
-        const errorData = await ttsResponse.json().catch(() => ({}));
-        throw new Error(errorData.details || 'TTS failed');
-      }
-
-      const audioBlob = await ttsResponse.blob();
-      console.log(`[${new Date().toISOString()}] ✅ TTS audio received:`, audioBlob.size, 'bytes');
-      const aiAudioUrl = URL.createObjectURL(audioBlob);
-      
-      // Update message with audio URL and voice metadata
-      setMessages(prev => {
-        const updated = prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, audioUrl: aiAudioUrl, generatedVoice: selectedVoice, generatedModel: selectedModel }
-            : msg
-        );
-        saveMessagesToStorage(updated);
-        return updated;
-      });
-      
-      // Processing done
+      // Reset processing state
       setIsProcessing(false);
-      setStatus('AI response ready - Click play to hear it');
-      console.log(`[${new Date().toISOString()}] ✅ Message added to conversation, ready for playback`);
-
-      // Extract and save memories (async, don't await) - only from user message
-      extractAndSaveMemories(transcribedText).catch(err => 
-        console.error('Memory extraction failed:', err)
-      );
+      setStatus('Transcription complete - Edit or send message');
+      console.log(`[${timestamp}] ✅ Transcription added to text input - ready to send`);
+      
+      // User can now:
+      // 1. Record more audio (will append to text input)
+      // 2. Edit the text manually
+      // 3. Hit Enter or click Send to send the message
     } catch (error: any) {
       console.error('Error:', error);
       setError(error.message || 'An unexpected error occurred');
@@ -1910,7 +1785,7 @@ Return ONLY valid JSON, no other text.`,
                   type="text"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
-                  placeholder={isProcessing ? "Type to queue..." : "Type or tap mic to speak..."}
+                  placeholder={isProcessing ? "Transcribing..." : "Type message or use mic..."}
                   className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
                 />
                 
