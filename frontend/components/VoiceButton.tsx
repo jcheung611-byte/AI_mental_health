@@ -3,11 +3,18 @@ import React, { useState, useRef, useEffect } from 'react';
 type VoiceButtonProps = {
   onAudioRecorded: (audioBlob: Blob) => void;
   onRecordingStart?: () => void;
+  onRecordingStateChange?: (isRecording: boolean, duration: number) => void;
   disabled?: boolean;
-  compact?: boolean; // For inline use in input bar
+  compact?: boolean;
 };
 
-export default function VoiceButton({ onAudioRecorded, onRecordingStart, disabled, compact }: VoiceButtonProps) {
+export default function VoiceButton({ 
+  onAudioRecorded, 
+  onRecordingStart, 
+  onRecordingStateChange,
+  disabled, 
+  compact 
+}: VoiceButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [recorder, setRecorder] = useState<any>(null);
@@ -15,78 +22,103 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
   const [isStarting, setIsStarting] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<number>(0);
   const [isTabHidden, setIsTabHidden] = useState(false);
+  const [audioLevels, setAudioLevels] = useState<number[]>([0, 0, 0, 0, 0]);
   
-  // Store visibility handler ref so we can remove it later
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
-  // Max recording duration (15 minutes = ~15MB, well under Whisper's 25MB limit)
-  // Vercel Pro supports up to 100MB, Whisper supports up to 25MB
-  const MAX_DURATION_SECONDS = 15 * 60; // 15 minutes
+  const MAX_DURATION_SECONDS = 15 * 60;
   
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Remove visibility listener if still attached
       if (visibilityHandlerRef.current) {
         document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
-        visibilityHandlerRef.current = null;
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
   }, []);
 
+  // Notify parent of recording state changes
+  useEffect(() => {
+    if (onRecordingStateChange) {
+      onRecordingStateChange(isRecording, duration);
+    }
+  }, [isRecording, duration, onRecordingStateChange]);
+
+  const updateAudioLevels = () => {
+    if (!analyserRef.current || !isRecording) return;
+    
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+    
+    // Sample 5 frequency bands for visualization
+    const bands = 5;
+    const bandSize = Math.floor(dataArray.length / bands);
+    const levels = [];
+    
+    for (let i = 0; i < bands; i++) {
+      let sum = 0;
+      for (let j = i * bandSize; j < (i + 1) * bandSize; j++) {
+        sum += dataArray[j];
+      }
+      // Normalize to 0-1 range with some amplification
+      levels.push(Math.min(1, (sum / bandSize / 255) * 2));
+    }
+    
+    setAudioLevels(levels);
+    animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
+  };
+
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] 🔘 BUTTON CLICKED`, {
-      isRecording,
-      isStarting,
-      disabled,
-      currentRecorder: recorder ? 'exists' : 'null'
-    });
-    
     if (isRecording) {
-      // Stop recording
       await stopRecording();
     } else {
-      // Start recording
       await startRecording();
     }
   };
 
   const startRecording = async () => {
-    const timestamp = new Date().toISOString();
-    
-    // Prevent starting if already recording or in the process of starting
-    if (isRecording || isStarting || disabled) {
-      console.log(`[${timestamp}] ⛔ Ignoring start - already recording or starting`);
-      return;
-    }
+    if (isRecording || isStarting || disabled) return;
 
-    console.log(`[${timestamp}] 🎤 Start recording triggered`);
     setIsStarting(true);
 
     try {
-      // Import dynamically to avoid SSR issues
       const { AudioRecorder } = await import('@/utils/audioRecorder');
       const newRecorder = new AudioRecorder();
-      await newRecorder.startRecording();
+      const stream = await newRecorder.startRecording();
       
-      const startTimestamp = new Date().toISOString();
-      console.log(`[${startTimestamp}] ✅ Recording started successfully`);
+      // Set up audio analyser for visualization
+      try {
+        audioContextRef.current = new AudioContext();
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        analyserRef.current.fftSize = 256;
+        source.connect(analyserRef.current);
+        
+        // Start updating audio levels
+        animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
+      } catch (err) {
+        console.warn('Could not set up audio visualization:', err);
+      }
+      
       setRecorder(newRecorder);
       setIsRecording(true);
       setDuration(0);
-      setRecordingStartTime(Date.now());
       
-      // Notify parent that recording has started (for audio interruption)
       if (onRecordingStart) {
-        console.log(`[${startTimestamp}] 🔔 Notifying parent: recording started`);
         onRecordingStart();
       }
 
-      // Start duration counter using REAL elapsed time (not increment)
-      // This ensures timer is accurate even when tab is in background
       const startTime = Date.now();
       setRecordingStartTime(startTime);
       
@@ -94,72 +126,48 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
         const elapsedSeconds = (Date.now() - startTime) / 1000;
         setDuration(elapsedSeconds);
         
-        // Auto-stop if max duration reached
         if (elapsedSeconds >= MAX_DURATION_SECONDS) {
-          console.log(`[${new Date().toISOString()}] ⏱️ Max duration reached (${MAX_DURATION_SECONDS}s), auto-stopping`);
           stopRecording();
         }
       }, 100);
       setIntervalId(id);
       
-      // Handle tab visibility changes (keep recording even when tab is hidden)
       const handleVisibilityChange = () => {
-        if (document.hidden) {
-          console.log(`[${new Date().toISOString()}] 👁️ Tab hidden - recording continues!`);
-          setIsTabHidden(true);
-        } else {
-          console.log(`[${new Date().toISOString()}] 👁️ Tab visible again`);
-          setIsTabHidden(false);
-        }
+        setIsTabHidden(document.hidden);
       };
-      // Store handler ref so we can remove it later
       visibilityHandlerRef.current = handleVisibilityChange;
       document.addEventListener('visibilitychange', handleVisibilityChange);
       
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to start recording:`, error);
-      alert('Could not access microphone. Please check permissions and try again.');
+      console.error('Failed to start recording:', error);
+      alert('Could not access microphone. Please check permissions.');
     } finally {
       setIsStarting(false);
     }
   };
 
   const stopRecording = async () => {
-    const timestamp = new Date().toISOString();
-    
-    console.log(`[${timestamp}] ⏹️ STOP RECORDING TRIGGERED`, {
-      hasRecorder: !!recorder,
-      isRecording
-    });
-    
-    if (!recorder || !isRecording) {
-      console.log(`[${timestamp}] ⛔ Ignoring stop - not recording`);
-      return;
-    }
+    if (!recorder || !isRecording) return;
 
-    // Check if minimum duration has passed (300ms minimum to avoid corrupted audio)
+    // Stop audio visualization
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    setAudioLevels([0, 0, 0, 0, 0]);
+
     const recordingDuration = Date.now() - recordingStartTime;
-    console.log(`[${timestamp}] ⏱️ Recording duration check:`, {
-      duration: recordingDuration,
-      minimumRequired: 300,
-      willProceed: recordingDuration >= 300
-    });
-    
     if (recordingDuration < 300) {
-      console.log(`[${timestamp}] ⏸️ Recording too short, waiting...`, recordingDuration, 'ms');
-      // Let it record a bit longer - user might have just clicked too fast
       await new Promise(resolve => setTimeout(resolve, 300 - recordingDuration));
-      console.log(`[${new Date().toISOString()}] ⏰ Minimum duration met, proceeding with stop`);
     }
-
-    console.log(`[${new Date().toISOString()}] ⏹️ Stopping recording after ${Date.now() - recordingStartTime}ms`);
 
     try {
       const audioBlob = await recorder.stopRecording();
-      const sizeMB = (audioBlob.size / 1024 / 1024).toFixed(2);
-      console.log(`[${new Date().toISOString()}] 📦 Full audio blob created:`, sizeMB, 'MB (', audioBlob.size, 'bytes)');
       
-      // Clear state
       setIsRecording(false);
       setRecorder(null);
       setIsTabHidden(false);
@@ -170,16 +178,14 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
         setIntervalId(null);
       }
       
-      // Remove visibility listener properly using the stored ref
       if (visibilityHandlerRef.current) {
         document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
         visibilityHandlerRef.current = null;
       }
 
-      console.log(`[${new Date().toISOString()}] 📤 Sending complete audio to parent`);
       onAudioRecorded(audioBlob);
     } catch (error: any) {
-      console.error(`[${new Date().toISOString()}] ❌ Failed to stop recording:`, error);
+      console.error('Failed to stop recording:', error);
       setIsRecording(false);
       setRecorder(null);
       setIsTabHidden(false);
@@ -190,29 +196,28 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
         setIntervalId(null);
       }
       
-      // Remove visibility listener on error too
       if (visibilityHandlerRef.current) {
         document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
         visibilityHandlerRef.current = null;
       }
       
-      // Show user-friendly error
       alert('Recording failed: ' + (error.message || 'Please try again'));
     }
   };
 
-  // Compact mode for inline input bar
+  // Compact mode with waveform
   if (compact) {
     return (
       <div className="relative flex items-center">
         <button
+          type="button"
           onClick={handleClick}
           disabled={disabled || isStarting}
           className={`
             w-10 h-10 rounded-full flex items-center justify-center
             transition-all duration-200
             ${isRecording 
-              ? 'bg-red-500 text-white animate-pulse' 
+              ? 'bg-red-500 text-white' 
               : isStarting
               ? 'bg-yellow-500 text-white'
               : 'bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-600'
@@ -237,24 +242,15 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
             </svg>
           )}
         </button>
-        
-        {/* Recording indicator - shows inline */}
-        {isRecording && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
-            <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-              {Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
 
-  // Full size mode (original)
+  // Full mode with waveform visualization
   return (
     <div className="flex flex-col items-center gap-4">
       <button
+        type="button"
         onClick={handleClick}
         disabled={disabled || isStarting}
         className={`
@@ -273,36 +269,35 @@ export default function VoiceButton({ onAudioRecorded, onRecordingStart, disable
       </button>
       
       {isRecording && (
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-2">
+          {/* Audio waveform visualization */}
+          <div className="flex items-end justify-center gap-1 h-8">
+            {audioLevels.map((level, i) => (
+              <div
+                key={i}
+                className="w-2 bg-red-400 rounded-full transition-all duration-75"
+                style={{ height: `${Math.max(4, level * 32)}px` }}
+              />
+            ))}
+          </div>
+          
           <div className="text-sm font-mono font-semibold text-gray-600">
-            Recording: {Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}
-            <span className="text-gray-400 ml-1">
-              / {Math.floor(MAX_DURATION_SECONDS / 60)}:00
-            </span>
+            {Math.floor(duration / 60)}:{(duration % 60).toFixed(0).padStart(2, '0')}
+            <span className="text-gray-400 ml-1">/ {Math.floor(MAX_DURATION_SECONDS / 60)}:00</span>
           </div>
-          <div className="text-xs text-gray-500">
-            {duration >= MAX_DURATION_SECONDS - 60 
-              ? '⚠️ Approaching limit...' 
-              : '🎙️ Up to 15 minutes per message'}
-          </div>
+          
           {isTabHidden && (
             <div className="text-xs text-orange-600 font-medium animate-pulse">
-              📱 Recording continues in background
+              📱 Recording in background
             </div>
           )}
         </div>
       )}
       
       <div className="text-xs text-gray-500 text-center max-w-xs">
-        {isRecording 
-          ? '🔴 Recording in progress - Click to stop' 
-          : 'Click to start recording (up to 15 min)'
-        }
+        {isRecording ? '🔴 Recording...' : 'Click to record (up to 15 min)'}
       </div>
     </div>
   );
 }
-
-
-
 
