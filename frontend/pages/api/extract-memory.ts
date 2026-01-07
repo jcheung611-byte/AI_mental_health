@@ -19,9 +19,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log(`[${new Date().toISOString()}] 🧠 Extracting memories from user message...`);
 
-    // Ask GPT-5.1 to extract important facts from USER message only
+    // Ask GPT-4o to extract important facts from USER message only
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5.1',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',

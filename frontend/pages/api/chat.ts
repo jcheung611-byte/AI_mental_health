@@ -107,11 +107,11 @@ export default async function handler(
       content: message,
     });
 
-    console.log('Sending', messages.length, 'messages to GPT-5.1 (including system prompt)');
+    console.log('Sending', messages.length, 'messages to GPT-4o (including system prompt)');
 
-    // Call GPT-5.1 with the full conversation context
+    // Call GPT-4o with the full conversation context
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5.1',
+      model: 'gpt-4o',
       messages: messages,
       temperature: systemOverride ? 0.3 : 0.8, // Lower temp for structured extraction
       max_completion_tokens: maxTokens || 500,
