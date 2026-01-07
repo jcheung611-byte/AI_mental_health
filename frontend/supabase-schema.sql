@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS memories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   fact TEXT NOT NULL,
+  source TEXT CHECK (source IN ('import', 'conversation')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   last_used_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

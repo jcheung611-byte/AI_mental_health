@@ -19,6 +19,7 @@ type Memory = {
   id: string;
   fact: string;
   timestamp: Date;
+  source?: 'import' | 'conversation'; // Track where memory came from
 };
 
 const STORAGE_KEY = 'ai-voice-conversations';
@@ -331,6 +332,7 @@ export default function Home() {
             id: mem.id,
             fact: mem.fact,
             timestamp: new Date(mem.created_at),
+            source: mem.source as 'import' | 'conversation' | undefined, // Preserve source field
           }));
           setMemories(memoriesWithDates);
           console.log(`[${new Date().toISOString()}] ☁️ Loaded ${memoriesWithDates.length} memories from Supabase`);
@@ -475,6 +477,7 @@ export default function Home() {
             id: mem.id,
             user_id: DEFAULT_USER_ID,
             fact: mem.fact,
+            source: mem.source, // Preserve source (import vs conversation)
             created_at: mem.timestamp.toISOString(),
             last_used_at: mem.timestamp.toISOString(),
           }));
@@ -905,6 +908,7 @@ export default function Home() {
           id: crypto.randomUUID(),
           fact: mem.fact,
           timestamp: new Date(),
+          source: 'conversation' as const, // Mark as extracted from conversation
         }));
 
         // Check for duplicates before adding
@@ -1049,9 +1053,10 @@ Return ONLY valid JSON, no other text.`,
         id: crypto.randomUUID(),
         fact: fact,
         timestamp: new Date(),
+        source: 'import' as const, // Mark as imported from ChatGPT
       }));
       setMemories(prev => [...prev, ...newMemories]);
-      console.log(`[${new Date().toISOString()}] 💾 Saved ${newMemories.length} facts as memories`);
+      console.log(`[${new Date().toISOString()}] 💾 Saved ${newMemories.length} imported facts as memories`);
     }
     
     // Save about me
@@ -2006,7 +2011,14 @@ Return ONLY valid JSON, no other text.`,
                       {memories.map(memory => (
                         <div key={memory.id} className="flex items-start justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
                           <div className="flex-1 pr-2">
-                            <p className="text-sm text-gray-800">{memory.fact}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm text-gray-800">{memory.fact}</p>
+                              {memory.source === 'import' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 whitespace-nowrap">
+                                  From Import
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-gray-500 mt-1">
                               {new Date(memory.timestamp).toLocaleDateString()}
                             </p>
