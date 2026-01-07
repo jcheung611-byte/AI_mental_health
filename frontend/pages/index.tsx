@@ -1512,13 +1512,13 @@ Return ONLY valid JSON, no other text.`,
 
       const audioBlob = await ttsResponse.blob();
       console.log(`[${new Date().toISOString()}] ✅ TTS audio received:`, audioBlob.size, 'bytes');
-      const audioUrl = URL.createObjectURL(audioBlob);
+      const aiAudioUrl = URL.createObjectURL(audioBlob);
       
       // Update message with audio URL and voice metadata
       setMessages(prev => {
         const updated = prev.map(msg => 
           msg.id === assistantMessageId 
-            ? { ...msg, audioUrl: audioUrl, generatedVoice: selectedVoice, generatedModel: selectedModel }
+            ? { ...msg, audioUrl: aiAudioUrl, generatedVoice: selectedVoice, generatedModel: selectedModel }
             : msg
         );
         saveMessagesToStorage(updated);
