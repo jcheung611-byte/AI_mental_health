@@ -1291,8 +1291,7 @@ Return ONLY valid JSON, no other text.`,
       return;
     }
     
-    // Vercel Pro supports up to 100MB
-    // Whisper API limit is 25MB (~25 minutes of audio)
+    // Whisper API limit is 25MB (~20+ minutes of audio)
     const MAX_SIZE_MB = 25;
     if (blob.size > MAX_SIZE_MB * 1024 * 1024) {
       const estimatedMinutes = Math.round(blob.size / 1024 / 1024); // ~1MB per minute
@@ -1301,47 +1300,123 @@ Return ONLY valid JSON, no other text.`,
       return;
     }
 
-    console.log(`[${timestamp}] ✅ Audio validated (${sizeMB}MB), transcribing...`);
+    console.log(`[${timestamp}] ✅ Audio validated (${sizeMB}MB), processing...`);
     
     setIsProcessing(true);
-    setStatus('Transcribing your message...');
+    setStatus('Processing your recording...');
 
     try {
-      // Transcribe the full audio
-      const formData = new FormData();
-      formData.append('audio', blob, 'recording.webm');
-
-      const transcribeResponse = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!transcribeResponse.ok) {
-        const errorData = await transcribeResponse.json().catch(() => ({}));
-        const errorMsg = errorData.details || errorData.error || 'Transcription failed';
-        
-        if (transcribeResponse.status === 413) {
-          throw new Error('Recording too large. Please keep under 5 minutes.');
-        }
-        throw new Error(errorMsg);
-      }
-
-      const transcribeData = await transcribeResponse.json();
-      const finalTranscript = transcribeData.text;
-      console.log(`[${timestamp}] ✅ Transcription received (${finalTranscript.length} chars):`, finalTranscript.substring(0, 100) + '...');
+      const VERCEL_LIMIT_MB = 4.5;
+      let transcribedText: string;
+      let audioUrl: string | null = null;
       
-      if (!finalTranscript || finalTranscript.trim() === '') {
+      // HYBRID APPROACH: Choose strategy based on file size
+      if (blob.size <= VERCEL_LIMIT_MB * 1024 * 1024) {
+        // Strategy 1: File small enough - do BOTH in parallel!
+        console.log(`[${timestamp}] 📤 File ≤4.5MB - using PARALLEL upload + transcribe`);
+        setStatus('Uploading & transcribing...');
+        
+        const [uploadResult, transcribeResult] = await Promise.all([
+          // Background: Upload to Supabase Storage for Voice Journal
+          (async () => {
+            try {
+              const result = await uploadAudioToStorage(blob, DEFAULT_USER_ID);
+              if (result) {
+                console.log(`[${timestamp}] ✅ Supabase upload complete: ${result.url}`);
+                return result.url;
+              }
+              return null;
+            } catch (err) {
+              console.error(`[${timestamp}] ⚠️ Supabase upload failed (non-critical):`, err);
+              return null; // Graceful degradation - transcription still works
+            }
+          })(),
+          
+          // Foreground: Direct transcription (fast!)
+          (async () => {
+            const formData = new FormData();
+            formData.append('audio', blob, 'recording.webm');
+            const response = await fetch('/api/transcribe', {
+              method: 'POST',
+              body: formData,
+            });
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.error || `Transcription failed (${response.status})`);
+            }
+            const data = await response.json();
+            console.log(`[${timestamp}] ✅ Direct transcription complete`);
+            return data.text;
+          })()
+        ]);
+        
+        audioUrl = uploadResult;
+        transcribedText = transcribeResult;
+        
+      } else {
+        // Strategy 2: File too large for Vercel - use Supabase URL method
+        console.log(`[${timestamp}] 📤 File >4.5MB - using Supabase URL method`);
+        
+        // Step 1: Upload to Supabase
+        setStatus('Uploading large recording...');
+        const uploadResult = await uploadAudioToStorage(blob, DEFAULT_USER_ID);
+        if (!uploadResult) {
+          throw new Error('Failed to upload audio to storage');
+        }
+        audioUrl = uploadResult.url;
+        console.log(`[${timestamp}] ✅ Supabase upload complete: ${audioUrl}`);
+        
+        // Step 2: Transcribe from URL
+        setStatus('Transcribing from storage...');
+        const response = await fetch('/api/transcribe-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audioUrl }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Transcription from URL failed (${response.status})`);
+        }
+        
+        const data = await response.json();
+        transcribedText = data.text;
+        console.log(`[${timestamp}] ✅ URL transcription complete`);
+      }
+      
+      // Validation
+      if (!transcribedText || transcribedText.trim() === '') {
         throw new Error('No speech detected. Please try again.');
       }
       
-      // Add user message to conversation
+      console.log(`[${timestamp}] ✅ Final transcription (${transcribedText.length} chars):`, transcribedText.substring(0, 100) + '...');
+      
+      // Save user message to database with audio URL
       const userMessageId = crypto.randomUUID();
+      
+      // Save to Supabase
+      const { error: dbError } = await supabase.from('messages').insert({
+        id: userMessageId,
+        user_id: DEFAULT_USER_ID,
+        role: 'user',
+        text: transcribedText,
+        audio_url: audioUrl, // Voice Journal Library!
+        created_at: new Date().toISOString(),
+      });
+      
+      if (dbError) {
+        console.error(`[${timestamp}] ⚠️ Database save failed (non-critical):`, dbError);
+      } else {
+        console.log(`[${timestamp}] ✅ Message saved to database with audio URL`);
+      }
+      
+      // Add user message to UI
       const userMessage: Message = {
         id: userMessageId,
         role: 'user',
-        text: finalTranscript,
+        text: transcribedText,
         timestamp: new Date(),
-        // TODO: Add audioUrl after uploading to Supabase Storage
+        audioUrl: audioUrl || undefined, // Include audio URL for playback!
       };
       setMessages(prev => {
         const updated = [...prev, userMessage];
@@ -1366,7 +1441,7 @@ Return ONLY valid JSON, no other text.`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          message: finalTranscript,
+          message: transcribedText,
           conversationHistory: conversationHistory,
           memories: memories,
           userAboutMe: userAboutMe,
@@ -1456,7 +1531,7 @@ Return ONLY valid JSON, no other text.`,
       console.log(`[${new Date().toISOString()}] ✅ Message added to conversation, ready for playback`);
 
       // Extract and save memories (async, don't await) - only from user message
-      extractAndSaveMemories(finalTranscript).catch(err => 
+      extractAndSaveMemories(transcribedText).catch(err => 
         console.error('Memory extraction failed:', err)
       );
     } catch (error: any) {

@@ -1,0 +1,67 @@
+{
+  "testCases": [
+    {
+      "id": "baseline-10s",
+      "duration": "10s",
+      "estimatedDuration": 10,
+      "text": "Hello world. This is a simple test of the voice transcription system.",
+      "description": "Baseline test - simple phrase, 10 seconds"
+    },
+    {
+      "id": "numbers-10s",
+      "duration": "10s",
+      "estimatedDuration": 10,
+      "text": "I have 3 appointments at 2:30pm, 4:15pm, and 5:45pm today.",
+      "description": "Numbers and punctuation test"
+    },
+    {
+      "id": "medium-30s",
+      "duration": "30s",
+      "estimatedDuration": 30,
+      "text": "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet. Speech recognition systems need to handle various types of content, including technical terms, numbers, and punctuation marks.",
+      "description": "30-second test with varied content"
+    },
+    {
+      "id": "technical-30s",
+      "duration": "30s",
+      "estimatedDuration": 30,
+      "text": "Whisper uses an encoder-decoder transformer architecture. The encoder processes the audio input through multiple attention layers, while the decoder generates the transcription token by token using cross-attention mechanisms.",
+      "description": "Technical terminology test"
+    },
+    {
+      "id": "long-1min",
+      "duration": "1min",
+      "estimatedDuration": 60,
+      "text": "Today I want to talk about the importance of mental health and emotional well-being. It's something that affects all of us, yet we often don't give it the attention it deserves. Taking time to process our feelings, whether through journaling, talking to friends, or using tools like voice assistants, can make a significant difference in our daily lives. The key is finding what works for you and making it a regular practice.",
+      "description": "1-minute monologue about mental health"
+    },
+    {
+      "id": "narrative-2min",
+      "duration": "2min",
+      "estimatedDuration": 120,
+      "text": "I had such a challenging day at work today. There was this big project deadline looming, and I felt completely overwhelmed by everything on my plate. My manager kept adding more tasks, and I didn't know how to say no without seeming incompetent. I spent the whole morning in back-to-back meetings, then had to rush to finish a presentation that I barely had time to prepare. By lunch time, I was already exhausted and stressed out. The afternoon didn't get any better. I made a mistake in an email that went out to the whole team, and I felt so embarrassed about it. I know everyone makes mistakes, but in the moment it felt like such a big deal. I couldn't stop thinking about what people must be thinking of me. On top of that, I missed my workout class that I had been looking forward to all week because I had to stay late to fix some urgent issues. By the time I got home, I just wanted to collapse on the couch and not think about anything.",
+      "description": "2-minute venting session - realistic use case"
+    },
+    {
+      "id": "complex-3min",
+      "duration": "3min",
+      "estimatedDuration": 180,
+      "text": "Let me tell you about the history of artificial intelligence and machine learning. It all started back in the 1950s when Alan Turing proposed the famous Turing Test. He asked a fundamental question: can machines think? This sparked decades of research into computational intelligence. In the 1960s and 70s, researchers developed early expert systems that could solve specific problems in narrow domains. These systems used rule-based approaches and knowledge bases. However, they struggled with ambiguity and couldn't generalize beyond their programmed rules. The 1980s saw the rise of neural networks, inspired by how biological brains process information. Researchers like Geoffrey Hinton pioneered backpropagation, allowing networks to learn from data. But computational power was limited, and progress slowed during what's called the AI winter. Everything changed in the 2010s with deep learning. Graphics processing units made it possible to train much larger neural networks on massive datasets. AlexNet's victory in ImageNet 2012 proved that deep learning could outperform traditional approaches. Since then, we've seen transformer architectures, attention mechanisms, and large language models that can generate human-like text. The field continues to evolve rapidly.",
+      "description": "3-minute educational content with technical terms"
+    },
+    {
+      "id": "stress-test-5min",
+      "duration": "5min",
+      "estimatedDuration": 300,
+      "text": "This is a comprehensive stress test of the transcription system at the maximum supported duration of five minutes. The goal here is to simulate a real venting session where someone might talk continuously about their day, their feelings, and their thoughts without interruption. In real usage, people don't speak in perfectly structured sentences. They pause, they hesitate, they change topics mid-thought. Sometimes they repeat themselves when they're processing emotions. They might say um or uh while thinking. This is the kind of natural, flowing speech that the system needs to handle reliably. So let me tell you about everything that's been on my mind lately. First of all, there's work stress. It never seems to end. There's always another deadline, another meeting, another crisis that needs immediate attention. I try to stay organized and on top of everything, but some days it feels impossible. Then there's my personal life, which sometimes takes a backseat when work gets overwhelming. I haven't been exercising as much as I should. I keep telling myself I'll start tomorrow, but tomorrow keeps becoming next week. My sleep schedule has been terrible too. I stay up too late scrolling through my phone, even though I know it's not good for me. And relationships, those are complicated too. Maintaining friendships takes effort and energy, and sometimes I just don't have it to give. I cancel plans, I don't respond to messages promptly, and then I feel guilty about it. It's a cycle that's hard to break. But I'm trying. I'm really trying to be better about all of this. Some days are good, some days are not so good, and that's okay. That's life, right? The important thing is to keep moving forward, to keep trying, to give yourself grace when things don't go perfectly. Because perfectionism is exhausting and unrealistic. Nobody has it all figured out, no matter how much they might seem like they do on social media. We're all just doing our best with what we have.",
+      "description": "5-minute realistic venting session - CRITICAL TEST"
+    }
+  ],
+  "configuration": {
+    "baseUrl": "http://localhost:3000",
+    "voice": "nova",
+    "model": "tts-1",
+    "transcriptionModel": "whisper-1"
+  }
+}
+

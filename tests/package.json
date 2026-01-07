@@ -1,0 +1,16 @@
+{
+  "name": "audio-pipeline-tests",
+  "version": "1.0.0",
+  "description": "Automated testing for voice transcription pipeline",
+  "scripts": {
+    "test": "node audio-pipeline-test.js",
+    "test:long": "node audio-pipeline-test.js --duration=long",
+    "test:short": "node audio-pipeline-test.js --duration=short"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.7.0"
+  },
+  "type": "commonjs"
+}
+

@@ -1,0 +1,39 @@
+# Environment
+.env
+*.env
+.env.local
+config.env
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Cursor AI
+.cursor/
+terminals/
+
+# Test results
+tests/test-results/*
+!tests/test-results/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+test-recording.webm
+
