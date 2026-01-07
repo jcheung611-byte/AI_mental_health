@@ -55,6 +55,7 @@ export default function Home() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [memoryToast, setMemoryToast] = useState<string | null>(null);
   const [copyConfirm, setCopyConfirm] = useState(false);
+  const [memoryFilter, setMemoryFilter] = useState<'all' | 'import' | 'conversation'>('all');
   
   // About Me / User Context
   const [userAboutMe, setUserAboutMe] = useState<string>('');
@@ -409,17 +410,45 @@ export default function Home() {
       }
     };
 
-    const checkOnboarding = () => {
+    const checkOnboarding = async () => {
       try {
-        const hasCompleted = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        // Check Supabase first (persists across deployments)
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('onboarding_complete')
+          .eq('user_id', DEFAULT_USER_ID)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+          console.warn('Failed to check onboarding from Supabase:', error);
+          // Fall back to localStorage
+          const hasCompleted = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+          if (!hasCompleted) {
+            setTimeout(() => setShowOnboardingModal(true), 1000);
+          }
+          return;
+        }
+        
+        const hasCompleted = data?.onboarding_complete || localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        
         if (!hasCompleted) {
           // Show onboarding for new users after a brief delay
           setTimeout(() => {
             setShowOnboardingModal(true);
           }, 1000);
+        } else {
+          // Sync to localStorage if not already there
+          if (!localStorage.getItem(ONBOARDING_COMPLETE_KEY)) {
+            localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+          }
         }
       } catch (error) {
         console.error('Failed to check onboarding status:', error);
+        // Fallback: check localStorage
+        const hasCompleted = localStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        if (!hasCompleted) {
+          setTimeout(() => setShowOnboardingModal(true), 1000);
+        }
       }
     };
     
@@ -1065,7 +1094,47 @@ Return ONLY valid JSON, no other text.`,
       console.log(`[${new Date().toISOString()}] 💾 Saved About Me`);
     }
     
-    // Mark onboarding complete
+    // Save original ChatGPT import to Supabase for reference
+    if (chatGPTResponse) {
+      try {
+        const { error } = await supabase
+          .from('chatgpt_imports')
+          .insert({
+            user_id: DEFAULT_USER_ID,
+            original_text: chatGPTResponse,
+            parsed_about_me: parsedAboutMe,
+          });
+        
+        if (error) {
+          console.warn('Failed to save ChatGPT import to Supabase:', error);
+        } else {
+          console.log(`[${new Date().toISOString()}] ☁️ Saved original ChatGPT import to Supabase`);
+        }
+      } catch (error) {
+        console.error('Error saving ChatGPT import:', error);
+      }
+    }
+    
+    // Mark onboarding complete in Supabase
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: DEFAULT_USER_ID,
+          onboarding_complete: true,
+          about_me: parsedAboutMe,
+        }, { onConflict: 'user_id' });
+      
+      if (error) {
+        console.warn('Failed to save onboarding completion to Supabase:', error);
+      } else {
+        console.log(`[${new Date().toISOString()}] ☁️ Marked onboarding complete in Supabase`);
+      }
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
+    }
+    
+    // Mark onboarding complete locally as fallback
     localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
     
     // Close modal
@@ -2005,35 +2074,92 @@ Return ONLY valid JSON, no other text.`,
                     </p>
                   </div>
 
-                  {/* Memory List */}
+                  {/* Filter Pills */}
                   {memories.length > 0 && (
-                    <div className="max-h-60 overflow-y-auto space-y-2 mb-3">
-                      {memories.map(memory => (
-                        <div key={memory.id} className="flex items-start justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
-                          <div className="flex-1 pr-2">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm text-gray-800">{memory.fact}</p>
-                              {memory.source === 'import' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 whitespace-nowrap">
-                                  From Import
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {new Date(memory.timestamp).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => deleteMemory(memory.id)}
-                            className="ml-2 text-gray-400 hover:text-red-600 text-xl font-bold transition-all"
-                            title="Delete this memory"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-2 mb-3">
+                      <button
+                        onClick={() => setMemoryFilter('all')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          memoryFilter === 'all'
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        All {memories.length > 0 && `(${memories.length})`}
+                      </button>
+                      <button
+                        onClick={() => setMemoryFilter('import')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          memoryFilter === 'import'
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Imported {memories.filter(m => m.source === 'import').length > 0 && `(${memories.filter(m => m.source === 'import').length})`}
+                      </button>
+                      <button
+                        onClick={() => setMemoryFilter('conversation')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          memoryFilter === 'conversation'
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Learned {memories.filter(m => m.source === 'conversation').length > 0 && `(${memories.filter(m => m.source === 'conversation').length})`}
+                      </button>
+                      {memoryFilter !== 'all' && (
+                        <button
+                          onClick={() => setMemoryFilter('all')}
+                          className="ml-auto text-xs text-gray-500 hover:text-gray-700 underline"
+                        >
+                          Clear filter
+                        </button>
+                      )}
                     </div>
                   )}
+
+                  {/* Memory List */}
+                  {memories.length > 0 && (() => {
+                    const filteredMemories = memories.filter(memory => {
+                      if (memoryFilter === 'all') return true;
+                      if (memoryFilter === 'import') return memory.source === 'import';
+                      if (memoryFilter === 'conversation') return memory.source === 'conversation';
+                      return true;
+                    });
+
+                    return filteredMemories.length > 0 ? (
+                      <div className="max-h-60 overflow-y-auto space-y-2 mb-3">
+                        {filteredMemories.map(memory => (
+                          <div key={memory.id} className="flex items-start justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all">
+                            <div className="flex-1 pr-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm text-gray-800">{memory.fact}</p>
+                                {memory.source === 'import' && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 whitespace-nowrap">
+                                    From Import
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(memory.timestamp).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => deleteMemory(memory.id)}
+                              className="ml-2 text-gray-400 hover:text-red-600 text-xl font-bold transition-all"
+                              title="Delete this memory"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        <p className="text-sm">No {memoryFilter} memories yet</p>
+                      </div>
+                    );
+                  })()}
 
                   {/* Clear Memories Button */}
                   {memories.length > 0 && (

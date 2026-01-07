@@ -42,8 +42,18 @@ CREATE TABLE IF NOT EXISTS user_settings (
   mode TEXT DEFAULT 'friend' CHECK (mode IN ('friend', 'helper', 'mentor')),
   voice TEXT DEFAULT 'nova',
   model TEXT DEFAULT 'tts-1',
+  onboarding_complete BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ChatGPT Import Data table (stores the original import for reference)
+CREATE TABLE IF NOT EXISTS chatgpt_imports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  original_text TEXT NOT NULL,
+  parsed_about_me TEXT,
+  imported_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create indexes for better query performance
