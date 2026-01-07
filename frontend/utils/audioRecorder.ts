@@ -7,7 +7,7 @@ export class AudioRecorder {
   private stream: MediaStream | null = null;
   private startTime: number = 0;
 
-  async startRecording(): Promise<void> {
+  async startRecording(): Promise<MediaStream> {
     try {
       // Clean up any existing stream
       if (this.stream) {
@@ -47,6 +47,9 @@ export class AudioRecorder {
       // Start recording with 100ms timeslices
       this.mediaRecorder.start(100);
       console.log('[AudioRecorder] Recording started with mimeType:', this.mediaRecorder.mimeType);
+      
+      // Return the stream for audio visualization
+      return this.stream;
     } catch (error) {
       console.error('[AudioRecorder] Error starting recording:', error);
       throw error;
