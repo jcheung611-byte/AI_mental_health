@@ -8,98 +8,8 @@ import * as nodes from './nodes';
  * Create and compile the check-in graph
  */
 export function createCheckinGraph() {
-  // Define the state graph
-  const workflow = new StateGraph<CheckinState>({
-    channels: {
-      // Input fields
-      user_id: {
-        value: (x: string, y?: string) => y ?? x,
-        default: () => ''
-      },
-      session_id: {
-        value: (x: string, y?: string) => y ?? x,
-        default: () => ''
-      },
-      timestamp: {
-        value: (x: Date, y?: Date) => y ?? x,
-        default: () => new Date()
-      },
-      raw_input: {
-        value: (x: string, y?: string) => y ?? x,
-        default: () => ''
-      },
-      
-      // Classification
-      signals: {
-        value: (x: any, y?: any) => y ?? x,
-        default: () => undefined
-      },
-      
-      // Follow-up
-      needs_followup: {
-        value: (x: boolean, y?: boolean) => y ?? x,
-        default: () => false
-      },
-      followup_question: {
-        value: (x: string | undefined, y?: string) => y ?? x,
-        default: () => undefined
-      },
-      followup_response: {
-        value: (x: string | undefined, y?: string) => y ?? x,
-        default: () => undefined
-      },
-      
-      // Mode selection
-      selected_mode: {
-        value: (x: any, y?: any) => y ?? x,
-        default: () => undefined
-      },
-      mode_rationale: {
-        value: (x: string | undefined, y?: string) => y ?? x,
-        default: () => undefined
-      },
-      available_modes: {
-        value: (x: string[] | undefined, y?: string[]) => y ?? x,
-        default: () => undefined
-      },
-      
-      // Intervention
-      intervention_text: {
-        value: (x: string | undefined, y?: string) => y ?? x,
-        default: () => undefined
-      },
-      
-      // Safety
-      safety_flag: {
-        value: (x: any, y?: any) => y ?? x,
-        default: () => 'none'
-      },
-      
-      // Policy state
-      recent_modes: {
-        value: (x: string[] | undefined, y?: string[]) => y ?? x,
-        default: () => []
-      },
-      mode_feedback_history: {
-        value: (x: any[] | undefined, y?: any[]) => y ?? x,
-        default: () => []
-      },
-      
-      // Metadata
-      model_used: {
-        value: (x: string | undefined, y?: string) => y ?? x,
-        default: () => undefined
-      },
-      latency_ms: {
-        value: (x: number | undefined, y?: number) => y ?? x,
-        default: () => undefined
-      },
-      trace_id: {
-        value: (x: string | undefined, y?: string) => y ?? x,
-        default: () => undefined
-      }
-    }
-  });
+  // Create workflow - StateGraph automatically handles state updates from node returns
+  const workflow: any = new StateGraph({});
 
   // Add nodes
   workflow.addNode('intake', nodes.intakeNode);
@@ -119,7 +29,7 @@ export function createCheckinGraph() {
   // Conditional edge from safety check
   workflow.addConditionalEdges(
     'safety',
-    (state) => {
+    (state: CheckinState) => {
       if (state.safety_flag === 'crisis' || state.safety_flag === 'medical') {
         return 'crisis';
       }
@@ -137,7 +47,7 @@ export function createCheckinGraph() {
   // Conditional edge from decide_followup
   workflow.addConditionalEdges(
     'decide_followup',
-    (state) => {
+    (state: CheckinState) => {
       // If follow-up is needed and we haven't received a response yet, end here
       // The API will return the follow-up question to the user
       if (state.needs_followup && !state.followup_response) {
