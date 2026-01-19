@@ -8,12 +8,12 @@
 ## 📊 Current Status
 
 **Current Phase:** Phase 1 - Foundation + Relationship Building  
-**Current Feature:** UX Polish & Refinement  
+**Current Feature:** Adaptive AI System 🚀  
 **Days in Development:** 3  
-**Commits:** 20  
-**Latest Commit:** 2446c81 ✅ (Auto-expanding text input)  
+**Commits:** 21  
+**Latest Commit:** b3bef8c ✅ (Adaptive AI + Instructions)  
 **Deployment:** ✅ Live on Vercel  
-**Status:** ✅ Core features polished - ready for user testing!
+**Status:** 🎉 MAJOR MILESTONE - Transformed to adaptive AI companion!
 
 ---
 
@@ -56,7 +56,235 @@
 
 ## 📝 Detailed Changelog
 
+### **Jan 19, 2026**
+
+#### 🚀 Agentic Check-in System - MVP ✅
+**Phase:** Phase 1 (Foundation) - Early Module Validation  
+**Type:** MAJOR FEATURE (Agentic Architecture)  
+**Commit:** [pending]  
+**Status:** ✅ Implementation Complete - Ready for Testing
+
+**What Was Built:**
+An agentic check-in experience using LangGraph for structured intervention flows:
+- LangGraph-powered state machine with 8 nodes (intake, classify, safety, decide, select, generate, persist)
+- 4 intervention modes: Reflect, Ground, Action, Hold
+- Fuzzy signal matching for feedback-driven adaptation (avoids modes with negative feedback by arousal level)
+- Unified data model (`messages.type = 'checkin'`)
+- Separate `/checkin` UI (beta feature with orange/yellow theme)
+- Comprehensive testing suite with 10 test cases
+
+**The System Flow:**
+1. User shares 10-30s check-in (voice/text)
+2. System classifies signals (valence, arousal, topics, confidence)
+3. Optional: asks ONE follow-up question if unclear (confidence < 0.7)
+4. Selects mode using policy + constraints (no repeat, avoid negative feedback)
+5. Generates concise, mode-specific intervention (<200 words)
+6. User provides feedback (Helped / Didn't help / Too much)
+7. Policy adapts: tracks last 10 modes, mode performance by arousal level
+
+**Adaptive Policy (Fuzzy Signal Matching):**
+- If mode X fails 2+ times when arousal=high, avoid X for any high-arousal check-in for 10 sessions
+- Prevents annoying repetition, learns user preferences
+- Rule-based for MVP (can evolve to ML later)
+
+**Technical:**
+- **Dependencies:** @langchain/langgraph, @langchain/core, @langchain/openai, uuid
+- **Database:** Added `checkin_sessions`, `checkin_feedback`, `user_policy_state` tables
+- **API Routes:** `/api/checkin` (runs graph), `/api/checkin/feedback` (saves feedback)
+- **Frontend:** `/checkin` page with recording, intervention display, feedback buttons
+- **Navigation:** Added tabs (Chat | Check-in Beta) to main page
+- **Testing:** Automated eval script (`tests/checkin-eval.js`) with 10 test cases
+
+**Mode-Specific Prompts:**
+- **Reflect:** Validation + exploration question (unclear input, general processing)
+- **Ground:** 45-60s grounding technique + physiological explanation (high arousal)
+- **Action:** Tiny concrete step, 2-5 min (low energy, stuck)
+- **Hold:** Permission to rest + reassurance (exhaustion, overwhelm)
+
+**Safety Handling:**
+- Crisis detection (self-harm, suicide) → safe response with resources (988, 741741, 911)
+- Medical emergency detection → flags for safety, provides resources
+- No diagnosis language (enforced in prompts + tested in eval)
+
+**Why This Matters:**
+- **Phase 3 Validation:** Tests structured interventions before building full module library
+- **Learning Ground:** Hands-on experience with agentic flows + LangGraph
+- **Future Integration:** Will integrate into main chat (AI detects distress → offers check-in)
+- **Foundation:** Proves concept of adaptive, mode-based coaching
+
+**Files Created:**
+- `frontend/lib/checkin/types.ts` - State schema, interfaces
+- `frontend/lib/checkin/prompts.ts` - Mode-specific prompts
+- `frontend/lib/checkin/policy.ts` - Mode selection + adaptation logic
+- `frontend/lib/checkin/nodes.ts` - 8 LangGraph node functions
+- `frontend/lib/checkin/graph.ts` - LangGraph assembly
+- `frontend/pages/api/checkin.ts` - Main API endpoint
+- `frontend/pages/api/checkin/feedback.ts` - Feedback endpoint
+- `frontend/pages/checkin.tsx` - Check-in page UI
+- `frontend/supabase-checkin-schema.sql` - Database migration
+- `tests/checkin-eval.js` - Automated testing suite
+- `CHECKIN_SYSTEM_README.md` - Complete documentation
+
+**Next Steps:**
+1. Run database migration in Supabase (execute `supabase-checkin-schema.sql`)
+2. Manual validation: 10+ real check-ins testing all modes
+3. Verify adaptation works (give negative feedback, test repeat avoidance)
+4. Spot-check mode selection quality
+5. Test crisis handling (ensure resources display)
+6. Deploy to Vercel (auto-deploys on push)
+7. Dogfood for 1 week, iterate based on real usage
+
+**Success Criteria:**
+- [ ] Mode selection appropriate 80%+ of time
+- [ ] Interventions feel helpful (not generic)
+- [ ] Crisis handling safe with resources
+- [ ] Adaptation prevents repetition
+- [ ] Actually used 5+ times in a week
+
+---
+
 ### **Jan 6, 2026**
+
+#### 🚀 Adaptive AI System + Custom Instructions Field ✅
+**Phase:** Phase 1 - Foundation  
+**Type:** MAJOR FEATURE (System Architecture)  
+**Commit:** b3bef8c  
+**Status:** ✅ Deployed to Vercel
+
+**THE BIG SHIFT:**
+Transformed from fixed-style prototype → adaptive product for ANY user
+
+**Problem Identified:**
+User compared app responses to ChatGPT:
+- App: Short (150 words), surface-level, therapist-y
+- ChatGPT: Deep (650 words), insightful, unpacks subtext
+- Root causes:
+  • 500 token limit (cut off mid-thought)
+  • "Be concise" instruction
+  • "Reflect back" pattern (summarizing, not adding insight)
+  • "Ask questions instead of monologuing"
+  • No tone-matching capability
+  • No depth/insight instructions
+
+**Solution: Adaptive AI System**
+
+**1. Rewrote Entire System Prompt:**
+
+OLD (Generic Bot):
+```
+- Be concise but caring
+- Reflect feelings back
+- Ask clarifying questions
+- Don't monologue
+```
+
+NEW (Adaptive Companion):
+```
+1. DIG BENEATH THE SURFACE
+   - Unpack subtext, not just reflect
+   - Identify underlying conflicts
+   - Connect dots across conversations
+
+2. ADAPT TO COMMUNICATION STYLE
+   - Mirror energy & language
+   - Match formality (casual/formal)
+   - Mirror profanity when authentic
+   - Let THEIR style guide YOUR style
+
+3. OFFER INSIGHTS & REFRAMES
+   - "Both can be true" thinking
+   - Distinguish person from situation
+   - Name invisible labor
+
+4. BE DIRECT WHEN HELPFUL
+   - Read context: venting vs problem-solving
+   - Warm AND direct
+   - Concrete guidance when appropriate
+
+5. VALIDATE & ACKNOWLEDGE
+   - Name difficulty
+   - Recognize effort
+   - Don't rush to "fix"
+
+6. USE THEIR CONTEXT
+   - Reference memories naturally
+   - Connect to past experiences
+   - Build continuity
+
+7. FORMAT FOR READABILITY
+   - Bold, bullets, sections when helpful
+   - Adjust length to needs
+```
+
+**2. Added Custom Instructions Field:**
+
+New UI in Settings (🎯 Response Instructions):
+- Separate from "About Me" (context) vs "Instructions" (style)
+- User can specify:
+  • Tone: "Match my energy"
+  • Length: "Keep it brief unless venting"
+  • Style: "Use formatting for clarity"
+  • Directness: "No sugarcoating"
+- Stored in database (`user_settings.instructions`)
+- Passed to API (highest priority)
+
+**3. Increased Token Limit:**
+- 500 → 1500 tokens
+- Allows depth when processing heavy topics
+- AI naturally adjusts (brief for quick questions)
+- Cost: ~$0.03/response (negligible)
+
+**Architecture:**
+
+Prompt Stack (processed in order):
+1. Base adaptive system prompt ← Universal capabilities
+2. User's custom instructions ← Per-user style guide
+3. About Me context ← Who they are
+4. Memories ← What we remember
+5. Conversation history ← What we've discussed
+6. Current message ← What they just said
+
+**Why This is HUGE:**
+
+Before:
+❌ Fixed personality (therapist-y)
+❌ One style for all users
+❌ Surface-level responses
+❌ Token limit forced brevity
+❌ Jordan would need to fork for personal use
+
+After:
+✅ Adapts to ANY user's style
+✅ Learns from conversation patterns
+✅ Digs deep when appropriate
+✅ Users control style via Instructions
+✅ True product, not prototype
+✅ Foundation for growth
+
+**Technical Changes:**
+- `frontend/pages/api/chat.ts`: New system prompt, +1000 tokens, instructions parameter
+- `frontend/supabase-schema.sql`: Added `instructions` TEXT column
+- `frontend/pages/index.tsx`: Instructions state, UI, persistence, API integration
+
+**User Can Now:**
+1. Set response style preferences (Instructions field)
+2. Get deeper, more insightful responses
+3. Have AI match their communication style
+4. Get both validation AND reframes
+5. Experience continuity (memories + history)
+
+**Impact:**
+- Solves "lackluster responses" problem
+- Creates adaptive AI that works for everyone
+- Foundation for future features (RAG, etc.)
+- Product-ready, not just Jordan-ready
+
+**Next to test:**
+- Various message types (short/long/venting/planning)
+- Different user styles (casual/formal/direct/gentle)
+- Response quality vs ChatGPT baseline
+
+---
 
 #### ✨ Auto-Expanding Text Input with Scrolling ✅
 **Phase:** Phase 1 - Foundation  

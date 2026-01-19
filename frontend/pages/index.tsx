@@ -1554,6 +1554,22 @@ Return ONLY valid JSON, no other text.`,
           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">v0</span>
         </div>
         
+        {/* Navigation Tabs */}
+        <div className="flex items-center justify-center gap-4 mb-4 flex-shrink-0">
+          <a
+            href="/"
+            className="px-4 py-2 text-purple-600 font-semibold border-b-2 border-purple-600"
+          >
+            Chat
+          </a>
+          <a
+            href="/checkin"
+            className="px-4 py-2 text-gray-500 hover:text-orange-600 transition-colors"
+          >
+            Check-in <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full ml-1">Beta</span>
+          </a>
+        </div>
+        
         {/* Main Content - Takes remaining height */}
         <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto min-h-0">
           {/* Conversation History - Expands to fill space */}
