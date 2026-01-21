@@ -224,8 +224,7 @@ export default function CheckinPage() {
               <div className="flex items-center gap-4 mb-4">
                 <VoiceButton
                   onAudioRecorded={handleAudioRecorded}
-                  isRecording={isRecording}
-                  onRecordingStateChange={setIsRecording}
+                  onRecordingStateChange={(recording, duration) => setIsRecording(recording)}
                 />
                 <span className="text-sm text-gray-500">
                   {isRecording ? 'Recording...' : 'Press to record (10-30 seconds)'}
