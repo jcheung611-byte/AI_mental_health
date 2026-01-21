@@ -1,6 +1,6 @@
 // LangGraph assembly for check-in flow
 
-import { StateGraph, END } from '@langchain/langgraph';
+import { StateGraph, END, Annotation } from '@langchain/langgraph';
 import { CheckinState } from './types';
 import * as nodes from './nodes';
 
@@ -8,9 +8,30 @@ import * as nodes from './nodes';
  * Create and compile the check-in graph
  */
 export function createCheckinGraph() {
-  // Create workflow - LangGraph will handle state merging from node return values
-  // Using Object constructor as the simplest valid state definition
-  const workflow: any = new StateGraph(Object as any);
+  // Define state schema using Annotation.Root (required by LangGraph)
+  const StateAnnotation = Annotation.Root({
+    user_id: Annotation<string>(),
+    session_id: Annotation<string>(),
+    timestamp: Annotation<Date>(),
+    raw_input: Annotation<string>(),
+    signals: Annotation<any>(),
+    needs_followup: Annotation<boolean>(),
+    followup_question: Annotation<string>(),
+    followup_response: Annotation<string>(),
+    selected_mode: Annotation<string>(),
+    mode_rationale: Annotation<string>(),
+    available_modes: Annotation<string[]>(),
+    intervention_text: Annotation<string>(),
+    safety_flag: Annotation<string>(),
+    recent_modes: Annotation<string[]>(),
+    mode_feedback_history: Annotation<any[]>(),
+    model_used: Annotation<string>(),
+    latency_ms: Annotation<number>(),
+    trace_id: Annotation<string>(),
+  });
+
+  // Create workflow with proper Annotation
+  const workflow: any = new StateGraph(StateAnnotation);
 
   // Add nodes
   workflow.addNode('intake', nodes.intakeNode);
