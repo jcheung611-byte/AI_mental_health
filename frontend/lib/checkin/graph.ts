@@ -8,8 +8,9 @@ import * as nodes from './nodes';
  * Create and compile the check-in graph
  */
 export function createCheckinGraph() {
-  // Create workflow - StateGraph automatically handles state updates from node returns
-  const workflow: any = new StateGraph({});
+  // Create workflow - LangGraph will handle state merging from node return values
+  // Using Object constructor as the simplest valid state definition
+  const workflow: any = new StateGraph(Object as any);
 
   // Add nodes
   workflow.addNode('intake', nodes.intakeNode);
