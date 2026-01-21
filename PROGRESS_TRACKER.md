@@ -8,12 +8,12 @@
 ## 📊 Current Status
 
 **Current Phase:** Phase 1 - Foundation + Relationship Building  
-**Current Feature:** Adaptive AI System 🚀  
-**Days in Development:** 3  
-**Commits:** 21  
-**Latest Commit:** b3bef8c ✅ (Adaptive AI + Instructions)  
+**Current Feature:** Agentic Check-in System 🤖  
+**Days in Development:** 4  
+**Commits:** 23  
+**Latest Commit:** bfa12f3 ✅ (Agentic Check-in + LangGraph)  
 **Deployment:** ✅ Live on Vercel  
-**Status:** 🎉 MAJOR MILESTONE - Transformed to adaptive AI companion!
+**Status:** 🎉 MAJOR MILESTONE - Agentic AI Check-in System shipped!
 
 ---
 
@@ -140,6 +140,54 @@ An agentic check-in experience using LangGraph for structured intervention flows
 - [ ] Crisis handling safe with resources
 - [ ] Adaptation prevents repetition
 - [ ] Actually used 5+ times in a week
+
+---
+
+### **Jan 21, 2026**
+
+#### 🐛 Fix VoiceButton Props in Check-in Page
+**Phase:** Phase 1 - Agentic Check-in  
+**Type:** Fix  
+**Commit:** bfa12f3  
+**Status:** ✅ Deployed to Vercel
+
+**What Changed:**
+- Fixed TypeScript compilation error in check-in page
+- Removed invalid `isRecording` prop (VoiceButton manages this internally)
+- Fixed `onRecordingStateChange` callback signature to properly extract recording state
+- Resolved build failure blocking deployment
+
+**Why:**
+Initial implementation passed props that didn't match VoiceButton's expected interface, causing Vercel build to fail.
+
+**Files Modified:**
+- `frontend/pages/checkin.tsx`
+
+**Rationale:**
+Quick fix to unblock deployment and enable testing of the agentic check-in system.
+
+---
+
+#### 🐛 Fix LangGraph StateGraph TypeScript Compilation Error
+**Phase:** Phase 1 - Agentic Check-in  
+**Type:** Fix  
+**Commit:** 502dd87  
+**Status:** ✅ Deployed to Vercel
+
+**What Changed:**
+- Simplified StateGraph initialization to bypass strict TypeScript type checking
+- Used `any` typing for workflow to work with LangGraph's TypeScript API
+- Added explicit `CheckinState` types to conditional edge callbacks
+- Nodes maintain proper typing through function signatures
+
+**Why:**
+LangGraph's TypeScript API for `channels` configuration was causing compilation errors. Pragmatic approach allows project to proceed with LangGraph while maintaining type safety within nodes.
+
+**Files Modified:**
+- `frontend/lib/checkin/graph.ts`
+
+**Rationale:**
+Deferred deep dive into LangGraph's advanced TypeScript channel definitions to focus on MVP delivery. Can refactor for stricter typing later if needed.
 
 ---
 
