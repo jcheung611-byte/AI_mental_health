@@ -40,8 +40,25 @@ export default async function handler(
     const startTime = Date.now();
 
     // Run the graph
-    const graph = createCheckinGraph();
-    const result = await graph.invoke(initialState);
+    let graph;
+    try {
+      console.log('Creating checkin graph...');
+      graph = createCheckinGraph();
+      console.log('Graph created successfully');
+    } catch (graphError: any) {
+      console.error('Graph creation failed:', graphError);
+      throw new Error(`Failed to create LangGraph: ${graphError.message}`);
+    }
+    
+    let result;
+    try {
+      console.log('Invoking graph with state...');
+      result = await graph.invoke(initialState);
+      console.log('Graph invocation completed');
+    } catch (invokeError: any) {
+      console.error('Graph invocation failed:', invokeError);
+      throw new Error(`Failed to run LangGraph: ${invokeError.message}`);
+    }
 
     const duration = Date.now() - startTime;
     console.log(`Graph execution completed in ${duration}ms`);
@@ -74,11 +91,16 @@ export default async function handler(
       safety_flag: result.safety_flag,
     });
   } catch (error: any) {
-    console.error('Check-in error:', error);
+    console.error('=== CHECK-IN ERROR ===');
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return res.status(500).json({
       error: 'Check-in failed',
       details: error.message,
+      errorName: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 }
