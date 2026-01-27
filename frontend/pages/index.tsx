@@ -5,7 +5,7 @@
  * Original: 2527 lines → Refactored: ~300 lines (including modals)
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Head from 'next/head'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -20,6 +20,8 @@ import {
 } from '@/contexts'
 import { ChatHeader, MessageList, InputArea } from '@/components/chat'
 import { DesktopNav, MobileNav } from '@/components/navigation'
+import { MemoryPanel } from '@/components/memory/MemoryPanel'
+import { useKeyboardShortcuts, KEYBOARD_SHORTCUTS, getShortcutDisplay } from '@/hooks/useKeyboardShortcuts'
 
 // Main Chat Interface (uses all contexts)
 function ChatInterface() {
@@ -102,6 +104,23 @@ function ChatInterface() {
     skipOnboarding,
   } = useSettings()
 
+  // Local state for shortcuts help
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false)
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onFocusInput: () => textareaRef.current?.focus(),
+    onShowHelp: () => setShowShortcutsHelp(true),
+    onExport: exportConversation,
+    onClear: () => setShowClearModal(true),
+    onEscape: () => {
+      setShowSettingsModal(false)
+      setShowClearModal(false)
+      setShowShortcutsHelp(false)
+      stopAllAudio()
+    },
+  })
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -150,8 +169,8 @@ function ChatInterface() {
 
         {/* Main Chat Content */}
         <main className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
-          <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto min-h-0 p-4">
-          <div className="bg-white rounded-xl shadow-md flex flex-col flex-1 min-h-0 mb-4">
+          <div className="flex-1 flex flex-col w-full max-w-4xl lg:max-w-5xl mx-auto min-h-0 md:p-4">
+          <div className="bg-white md:rounded-xl md:shadow-md flex flex-col flex-1 min-h-0 md:mb-4">
             {/* Chat Header */}
             <ChatHeader
               messages={messages}
@@ -200,6 +219,9 @@ function ChatInterface() {
           </div>
           </div>
         </main>
+
+        {/* Desktop Memory Panel (right sidebar) */}
+        <MemoryPanel />
 
         {/* Mobile Bottom Navigation */}
         <MobileNav />
@@ -260,6 +282,56 @@ function ChatInterface() {
                     Clear All
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard Shortcuts Help Modal */}
+      <AnimatePresence>
+        {showShortcutsHelp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowShortcutsHelp(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Keyboard Shortcuts</h3>
+                <button
+                  onClick={() => setShowShortcutsHelp(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {KEYBOARD_SHORTCUTS.map((shortcut, index) => (
+                  <div key={index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-700">{shortcut.description}</span>
+                    <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono text-gray-700 shadow-sm">
+                      {getShortcutDisplay(shortcut.key)}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 text-center">
+                <p className="text-xs text-gray-500">
+                  Press <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Cmd/Ctrl + /</kbd> anytime to see shortcuts
+                </p>
               </div>
             </motion.div>
           </motion.div>
