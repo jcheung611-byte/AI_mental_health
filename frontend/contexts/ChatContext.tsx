@@ -135,8 +135,10 @@ export function ChatProvider({
 
     if (fullAudioBlobRef.current) {
       try {
-        const audioUrl = await uploadAudioToStorage(fullAudioBlobRef.current, DEFAULT_USER_ID)
-        userMessage.audioUrl = audioUrl
+        const result = await uploadAudioToStorage(fullAudioBlobRef.current, DEFAULT_USER_ID)
+        if (result) {
+          userMessage.audioUrl = result.url
+        }
       } catch (error) {
         console.error('Failed to upload audio:', error)
       }

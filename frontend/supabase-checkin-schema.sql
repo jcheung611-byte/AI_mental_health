@@ -46,6 +46,10 @@ CREATE TABLE IF NOT EXISTS checkin_sessions (
   -- Intervention
   intervention_text TEXT NOT NULL,
   
+  -- UX enhancements
+  ai_generated_title TEXT,  -- Short summary for history
+  conversation_messages JSONB DEFAULT '[]',  -- Array of {role, text} for multi-turn
+  
   -- Metadata
   safety_flag TEXT,
   model_used TEXT DEFAULT 'gpt-4o',

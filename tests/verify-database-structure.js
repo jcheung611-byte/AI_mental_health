@@ -99,3 +99,5 @@ WHERE table_name = 'messages'
 // Run verification
 verifyDatabaseStructure().catch(console.error);
 
+
+

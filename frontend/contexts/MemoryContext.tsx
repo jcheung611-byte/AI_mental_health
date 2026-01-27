@@ -35,7 +35,7 @@ interface MemoryContextValue {
   extractAndSaveMemories: (userMessage: string) => Promise<void>
   deleteMemory: (memoryId: string) => Promise<void>
   clearMemories: () => Promise<void>
-  addMemories: (facts: string[], source?: 'import' | 'conversation') => Promise<void>
+  addMemories: (facts: string[], source?: 'import' | 'conversation') => Promise<Memory[]>
   loadMemoriesFromStorage: () => void
   saveMemoriesToStorage: (memoriesToSave: Memory[]) => Promise<void>
 }

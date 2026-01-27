@@ -140,4 +140,3 @@ $$ LANGUAGE plpgsql;
 
 -- To run cleanup manually: SELECT cleanup_old_recordings();
 -- To schedule: Create a Supabase Edge Function that calls this daily
-
