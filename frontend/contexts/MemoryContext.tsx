@@ -115,13 +115,13 @@ export function MemoryProvider({ children }: MemoryProviderProps) {
     if (!memoryEnabled) return
 
     try {
-      const response = await fetch('/api/extract-memories', {
+      const response = await fetch('/api/extract-memory', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage,
+          userMessage: userMessage,
           existingMemories: memories.map((m) => m.fact),
         }),
       })

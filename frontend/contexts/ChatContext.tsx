@@ -103,18 +103,21 @@ export function ChatProvider({
 
   // Load messages from localStorage on mount
   const loadMessagesFromStorage = () => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
+    if (typeof window === 'undefined') return
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
         const parsed = JSON.parse(stored)
         const messagesWithDates = parsed.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp),
         }))
         setMessages(messagesWithDates)
-      } catch (error) {
-        console.error('Failed to parse stored messages:', error)
+        console.log(`📥 Loaded ${messagesWithDates.length} messages from localStorage`)
       }
+    } catch (error) {
+      console.error('Failed to parse stored messages:', error)
     }
   }
 
@@ -124,6 +127,8 @@ export function ChatProvider({
 
   // Save messages to localStorage
   const saveMessagesToStorage = async (messagesToSave: Message[]) => {
+    if (typeof window === 'undefined') return
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messagesToSave))
     } catch (error) {
@@ -170,26 +175,8 @@ export function ChatProvider({
     // Build context for API
     const conversationHistory = updatedMessages.map(msg => ({
       role: msg.role,
-      content: msg.text,
+      text: msg.text,
     }))
-
-    // Add memory context if enabled and memories exist
-    let systemMessage = ''
-    if (memoryEnabled && memories.length > 0) {
-      const memoryContext = memories.map(m => m.fact).join('\n')
-      systemMessage = `You are a supportive mental health companion. Here's what you know about the user:\n\n${memoryContext}`
-    } else {
-      systemMessage = 'You are a supportive mental health companion.'
-    }
-
-    // Add user context if provided
-    if (userAboutMe.trim()) {
-      systemMessage += `\n\nAbout the user: ${userAboutMe.trim()}`
-    }
-
-    if (userInstructions.trim()) {
-      systemMessage += `\n\nUser instructions: ${userInstructions.trim()}`
-    }
 
     setStatus('Getting response...')
 
@@ -200,10 +187,11 @@ export function ChatProvider({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [
-            { role: 'system', content: systemMessage },
-            ...conversationHistory,
-          ],
+          message: text.trim(),
+          conversationHistory: conversationHistory.slice(0, -1), // Exclude the current message
+          memories: memoryEnabled ? memories : [],
+          userAboutMe: userAboutMe.trim(),
+          userInstructions: userInstructions.trim(),
         }),
       })
 
@@ -212,7 +200,7 @@ export function ChatProvider({
       }
 
       const data = await response.json()
-      const assistantText = data.message
+      const assistantText = data.text
 
       setStatus('Generating voice response...')
 
