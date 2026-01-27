@@ -163,23 +163,14 @@ export function VoiceInput({
     }
   }
 
-  // Desktop: Long-press to record
-  const handleMouseDown = () => {
-    if (isMobile || isProcessing || isRecording) return
-
-    longPressTimerRef.current = setTimeout(() => {
-      startRecording()
-    }, 500) // 500ms hold to start
-  }
-
-  const handleMouseUp = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
+  // Desktop: Click to toggle recording
+  const handleDesktopClick = () => {
+    if (isMobile || isProcessing) return
 
     if (isRecording) {
       stopRecording()
+    } else {
+      startRecording()
     }
   }
 
@@ -219,10 +210,7 @@ export function VoiceInput({
       {/* Inline Microphone Button */}
       <button
         type="button"
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onClick={handleMobileClick}
+        onClick={isMobile ? handleMobileClick : handleDesktopClick}
         disabled={isProcessing || isTranscribing}
         className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
           isRecording
@@ -231,7 +219,7 @@ export function VoiceInput({
             ? 'bg-blue-500'
             : 'bg-purple-500 hover:bg-purple-600 active:scale-95'
         } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
-        title={isMobile ? 'Tap to record' : 'Hold to record'}
+        title={isMobile ? 'Tap to record' : isRecording ? 'Click to stop' : 'Click to record'}
       >
         {isTranscribing ? (
           <svg
@@ -297,7 +285,7 @@ export function VoiceInput({
             ))}
           </div>
           <span>{formatDuration(recordingDuration)}</span>
-          <span className="text-xs text-gray-500">(Release to send)</span>
+          <span className="text-xs text-gray-500">(Click to stop)</span>
         </motion.div>
       )}
 
