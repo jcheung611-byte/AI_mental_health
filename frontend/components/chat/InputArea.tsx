@@ -35,8 +35,9 @@ export function InputArea({
     // Set transcribed text in input field (user can edit before sending)
     onTextChange(transcribedText)
 
-    // Call the audio recorded handler to save the blob
-    await onAudioRecorded(audioBlob)
+    // Store the audio blob for when user clicks send
+    // For now, we just fill the text box - user must click Send
+    // TODO: Store audioBlob in a ref if we want to attach it to the message later
   }
 
   // Auto-resize textarea as user types
