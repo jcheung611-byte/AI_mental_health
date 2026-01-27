@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
+import Head from 'next/head';
 import VoiceButton from '../components/VoiceButton';
-import Link from 'next/link';
+import { DesktopNav, MobileNav } from '@/components/navigation';
+import { PageContainer, PageHeader } from '@/components/layout';
 
 type ResponseType = {
   type: 'followup_needed' | 'intervention';
@@ -192,29 +194,28 @@ export default function CheckinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
-          >
-            ← Back to Chat
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Quick Check-in
-          </h1>
-          <p className="text-lg text-gray-600">
-            Share how you're doing. I'll offer a short, helpful response.
-          </p>
-          <div className="mt-2 inline-block px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-            Beta
-          </div>
-        </div>
+    <>
+      <Head>
+        <title>Quick Check-in - AI Voice Assistant</title>
+        <meta name="description" content="Quick mental health check-in" />
+      </Head>
 
-        {/* Main content */}
-        {!response ? (
+      <div className="flex h-screen bg-gray-50">
+        {/* Desktop Sidebar */}
+        <DesktopNav />
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-16 md:pb-0">
+          <PageContainer>
+            <PageHeader
+              title="Quick Check-in"
+              description="Share how you're doing. I'll offer a short, helpful response."
+              badge="Beta"
+            />
+
+            {/* Main content */}
+            <div className="mt-8">
+              {!response ? (
           // Initial check-in input
           <div className="bg-white rounded-3xl shadow-lg p-8 space-y-6">
             <div>
@@ -350,15 +351,21 @@ export default function CheckinPage() {
           </div>
         )}
 
-        {/* Info footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>
-            This is a short, structured check-in experience. For longer conversations,
-            use the <Link href="/" className="text-orange-600 hover:underline">Chat</Link> feature.
-          </p>
+              {/* Info footer */}
+              <div className="mt-8 text-center text-sm text-gray-500">
+                <p>
+                  This is a short, structured check-in experience. For longer conversations,
+                  use the Chat feature.
+                </p>
+              </div>
+            </div>
+          </PageContainer>
         </div>
+
+        {/* Mobile Bottom Nav */}
+        <MobileNav />
       </div>
-    </div>
+    </>
   );
 }
 
