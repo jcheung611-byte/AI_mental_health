@@ -207,12 +207,12 @@ export function VoiceInput({
 
   return (
     <>
-      {/* Inline Microphone Button */}
+      {/* Inline Microphone Button - 44px for mobile touch targets */}
       <button
         type="button"
         onClick={isMobile ? handleMobileClick : handleDesktopClick}
         disabled={isProcessing || isTranscribing}
-        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
           isRecording
             ? 'bg-red-500 animate-pulse'
             : isTranscribing

@@ -80,11 +80,11 @@ export function InputArea({
           }}
         />
 
-        {/* Send Button */}
+        {/* Send Button - 44px minimum for mobile touch targets */}
         <button
           type="submit"
           disabled={!textInput.trim() || isProcessing}
-          className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+          className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all ${
             textInput.trim() && !isProcessing
               ? 'bg-purple-500 hover:bg-purple-600 active:scale-95 text-white'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'

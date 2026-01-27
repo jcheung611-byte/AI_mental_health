@@ -27,17 +27,33 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={`p-4 rounded-lg ${
-        isUser ? 'bg-blue-50 border border-blue-200' : 'bg-purple-50 border border-purple-200'
-      }`}
+      className={`
+        flex w-full
+        ${isUser ? 'justify-end md:justify-stretch' : 'justify-start md:justify-stretch'}
+      `}
     >
+      <div
+        className={`
+          p-4 rounded-2xl md:rounded-lg
+          max-w-[85%] md:max-w-full
+          ${isUser
+            ? 'bg-blue-500 text-white border-0 md:bg-blue-50 md:text-gray-700 md:border md:border-blue-200'
+            : 'bg-purple-50 border border-purple-200'}
+        `}
+      >
       {/* Message Header */}
-      <p className={`text-sm font-medium mb-2 ${isUser ? 'text-blue-800' : 'text-purple-800'}`}>
+      <p className={`text-sm font-medium mb-2 ${
+        isUser
+          ? 'text-blue-100 md:text-blue-800'
+          : 'text-purple-800'
+      }`}>
         {isUser ? '🎯 You' : '🤖 AI'}
       </p>
 
       {/* Message Content */}
-      <div className="text-gray-700 mb-3 prose prose-sm max-w-none">
+      <div className={`mb-3 prose prose-sm max-w-none ${
+        isUser ? 'text-white md:text-gray-700' : 'text-gray-700'
+      }`}>
         {isAssistant && !message.text ? (
           // Loading state for AI response
           <div className="flex items-center gap-2 text-purple-600">
@@ -93,7 +109,9 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
 
       {/* Message Footer */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">{message.timestamp.toLocaleTimeString()}</p>
+        <p className={`text-xs ${
+          isUser ? 'text-blue-100 md:text-gray-400' : 'text-gray-400'
+        }`}>{message.timestamp.toLocaleTimeString()}</p>
 
         {/* Play/Pause Button for Assistant Messages */}
         {isAssistant && message.text && (
@@ -101,7 +119,8 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
             onClick={playbackState === 'playing' ? onPause : onPlay}
             disabled={playbackState === 'loading'}
             className={`
-              px-3 py-1 rounded-lg font-medium text-sm transition-all
+              px-4 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all
+              flex items-center justify-center
               ${
                 playbackState === 'loading'
                   ? 'bg-gray-400 text-white cursor-wait'
@@ -125,6 +144,7 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
               : '▶️'}
           </button>
         )}
+      </div>
       </div>
     </motion.div>
   )
