@@ -19,6 +19,7 @@ export interface AnimationTokens {
     decelerate?: string
     accelerate?: string
     smooth?: string
+    sharp?: string
     bounce?: string
     spring?: string
     elastic?: string
