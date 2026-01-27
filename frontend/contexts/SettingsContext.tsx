@@ -5,8 +5,21 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { supabase, DEFAULT_USER_ID } from '@/utils/supabase'
 import type { Memory } from './MemoryContext'
+
+// Lazy import Supabase to avoid server-side initialization errors
+let supabase: any
+let DEFAULT_USER_ID: string = 'default-user'
+
+if (typeof window !== 'undefined') {
+  try {
+    const supabaseUtils = require('@/utils/supabase')
+    supabase = supabaseUtils.supabase
+    DEFAULT_USER_ID = supabaseUtils.DEFAULT_USER_ID
+  } catch (error) {
+    console.log('Supabase not configured, onboarding import disabled')
+  }
+}
 
 const ABOUT_ME_KEY = 'ai-voice-about-me'
 const INSTRUCTIONS_KEY = 'ai-voice-instructions'
@@ -210,7 +223,7 @@ Return ONLY valid JSON with no additional text.`,
     }
 
     // Save original ChatGPT import to Supabase for reference
-    if (chatGPTResponse) {
+    if (chatGPTResponse && supabase) {
       try {
         const { error } = await supabase.from('chatgpt_imports').insert({
           user_id: DEFAULT_USER_ID,

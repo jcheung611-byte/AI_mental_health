@@ -5,7 +5,21 @@
  */
 
 import React, { createContext, useContext, useState, useRef, ReactNode, useEffect } from 'react'
-import { supabase, DEFAULT_USER_ID, uploadAudioToStorage } from '@/utils/supabase'
+
+// Lazy import Supabase to avoid server-side initialization errors
+let uploadAudioToStorage: any
+let DEFAULT_USER_ID: string = 'default-user'
+
+if (typeof window !== 'undefined') {
+  // Only import on client-side
+  try {
+    const supabaseUtils = require('@/utils/supabase')
+    uploadAudioToStorage = supabaseUtils.uploadAudioToStorage
+    DEFAULT_USER_ID = supabaseUtils.DEFAULT_USER_ID
+  } catch (error) {
+    console.log('Supabase not configured, audio upload disabled')
+  }
+}
 
 export type Message = {
   id: string
