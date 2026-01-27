@@ -19,6 +19,7 @@ import {
   useSettings,
 } from '@/contexts'
 import { ChatHeader, MessageList, InputArea } from '@/components/chat'
+import { DesktopNav, MobileNav } from '@/components/navigation'
 
 // Main Chat Interface (uses all contexts)
 function ChatInterface() {
@@ -138,41 +139,18 @@ function ChatInterface() {
   return (
     <>
       <Head>
-        <title>AI Voice Assistant v0</title>
-        <meta name="description" content="Warm AI roommate - voice interface" />
+        <title>Chat - AI Voice Assistant</title>
+        <meta name="description" content="AI voice companion for mental health" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main className="h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex flex-col p-4 pb-0">
-        {/* Compact Header */}
-        <div className="flex items-center justify-center gap-3 py-3 flex-shrink-0">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            AI Voice Companion
-          </h1>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">v0</span>
-        </div>
+      <div className="flex h-screen bg-gray-50">
+        {/* Desktop Sidebar Navigation */}
+        <DesktopNav />
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-center gap-4 mb-4 flex-shrink-0">
-          <a
-            href="/"
-            className="px-4 py-2 text-purple-600 font-semibold border-b-2 border-purple-600"
-          >
-            Chat
-          </a>
-          <a
-            href="/checkin"
-            className="px-4 py-2 text-gray-500 hover:text-orange-600 transition-colors"
-          >
-            Check-in{' '}
-            <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full ml-1">
-              Beta
-            </span>
-          </a>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto min-h-0">
+        {/* Main Chat Content */}
+        <main className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+          <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto min-h-0 p-4">
           <div className="bg-white rounded-xl shadow-md flex flex-col flex-1 min-h-0 mb-4">
             {/* Chat Header */}
             <ChatHeader
@@ -220,8 +198,12 @@ function ChatInterface() {
               onRecordingStart={handleRecordingStart}
             />
           </div>
-        </div>
-      </main>
+          </div>
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileNav />
+      </div>
 
       {/* Memory Toast */}
       <AnimatePresence>
