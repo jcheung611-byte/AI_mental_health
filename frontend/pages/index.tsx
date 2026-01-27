@@ -404,10 +404,48 @@ function ChatInterface() {
                   </div>
 
                   {/* Voice Settings Section */}
-                  <div>
+                  <div className="border-b border-gray-200 pb-4">
                     <h4 className="text-lg font-semibold text-gray-800 mb-3">🎤 Voice Settings</h4>
 
-                    <div className="space-y-3">
+                    {/* Quality Selector */}
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Quality</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setSelectedModel('tts-1')}
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            selectedModel === 'tts-1'
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <p className="font-medium text-gray-800">Standard</p>
+                          <p className="text-xs text-gray-600">Faster, lower latency</p>
+                          {selectedModel === 'tts-1' && (
+                            <span className="text-purple-600 text-lg">✓</span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setSelectedModel('tts-1-hd')}
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            selectedModel === 'tts-1-hd'
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <p className="font-medium text-gray-800">HD</p>
+                          <p className="text-xs text-gray-600">Higher quality audio</p>
+                          {selectedModel === 'tts-1-hd' && (
+                            <span className="text-purple-600 text-lg">✓</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Voice Selector */}
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Voice</p>
+                      <div className="space-y-3">
                       {['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].map((voice) => (
                         <div
                           key={voice}
@@ -438,6 +476,7 @@ function ChatInterface() {
                           </div>
                         </div>
                       ))}
+                      </div>
                     </div>
                   </div>
                 </div>
