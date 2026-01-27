@@ -1,0 +1,194 @@
+/**
+ * Theme D: Playful & Human
+ *
+ * Warm, friendly, approachable, characterful
+ * Friendly rounded shapes, bouncy animations, warm interactions
+ */
+
+[data-theme='theme-d-playful'] {
+  /* ========================================
+     COLORS
+     ======================================== */
+
+  /* Primary: Friendly blues */
+  --color-primary-50: #eef6ff;
+  --color-primary-100: #d9ebff;
+  --color-primary-200: #b8dcff;
+  --color-primary-300: #8ac7ff;
+  --color-primary-400: #5aafff;
+  --color-primary-500: #4a9ff5;
+  --color-primary-600: #3b8adb;
+  --color-primary-700: #2c75c1;
+  --color-primary-800: #2360a7;
+  --color-primary-900: #1e50a7;
+
+  /* Secondary: Warm coral */
+  --color-secondary-50: #fff4ed;
+  --color-secondary-100: #ffe4d4;
+  --color-secondary-200: #ffc9a9;
+  --color-secondary-300: #ffac7d;
+  --color-secondary-400: #ff9472;
+  --color-secondary-500: #ff7f5c;
+  --color-secondary-600: #ff6b47;
+  --color-secondary-700: #f55633;
+  --color-secondary-800: #e85d3d;
+  --color-secondary-900: #cc4a2b;
+
+  /* Accent: Cheerful yellow */
+  --color-accent-50: #fffaeb;
+  --color-accent-100: #fff3c7;
+  --color-accent-200: #ffeba3;
+  --color-accent-300: #ffe280;
+  --color-accent-400: #ffd95d;
+  --color-accent-500: #ffc849;
+  --color-accent-600: #ffb524;
+  --color-accent-700: #ff9f00;
+  --color-accent-800: #e68a00;
+  --color-accent-900: #cc7700;
+
+  /* Neutral: Soft, warm grays */
+  --color-neutral-50: #fafaf9;
+  --color-neutral-100: #f5f5f3;
+  --color-neutral-200: #e7e6e3;
+  --color-neutral-300: #d4d2cd;
+  --color-neutral-400: #a8a59d;
+  --color-neutral-500: #78736d;
+  --color-neutral-600: #5c5750;
+  --color-neutral-700: #4a4641;
+  --color-neutral-800: #37342f;
+  --color-neutral-900: #2b2825;
+
+  /* Semantic */
+  --color-success: #5fcc7f;
+  --color-warning: #ffb84d;
+  --color-error: #ff6b6b;
+  --color-info: #6bbaff;
+
+  /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+
+  --font-sans: 'DM Sans Variable', 'Nunito', 'Poppins', 'Inter', sans-serif;
+  --font-display: 'Fredoka Variable', 'DM Sans Variable', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-3xl: 2rem; /* 32px */
+  --text-4xl: 2.5rem; /* 40px */
+  --text-5xl: 3rem; /* 48px */
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --leading-tight: 1.3;
+  --leading-snug: 1.45;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.75;
+
+  --tracking-tighter: -0.01em;
+  --tracking-tight: 0;
+  --tracking-normal: 0.005em;
+  --tracking-wide: 0.015em;
+
+  /* ========================================
+     SPACING
+     ======================================== */
+
+  --space-px: 1px;
+  --space-0: 0;
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
+
+  /* Border Radius */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 40px;
+  --radius-2xl: 56px;
+  --radius-3xl: 72px;
+  --radius-full: 9999px;
+
+  /* ========================================
+     SHADOWS
+     ======================================== */
+
+  --shadow-xs: 0 2px 4px 0 rgba(74, 159, 245, 0.08);
+  --shadow-sm: 0 4px 8px 0 rgba(74, 159, 245, 0.12);
+  --shadow-md: 0 8px 16px 0 rgba(74, 159, 245, 0.14);
+  --shadow-lg: 0 12px 24px 0 rgba(74, 159, 245, 0.18);
+  --shadow-xl: 0 20px 40px 0 rgba(74, 159, 245, 0.2);
+  --shadow-2xl: 0 28px 56px 0 rgba(74, 159, 245, 0.24);
+  --shadow-inner: inset 0 2px 4px 0 rgba(74, 159, 245, 0.1);
+  --shadow-glow: 0 6px 12px 0 rgba(255, 148, 114, 0.25);
+  --shadow-glow-primary: 0 8px 16px 0 rgba(74, 159, 245, 0.3);
+  --shadow-glow-accent: 0 8px 16px 0 rgba(255, 200, 73, 0.3);
+
+  /* ========================================
+     ANIMATIONS
+     ======================================== */
+
+  --duration-fast: 250ms;
+  --duration-normal: 400ms;
+  --duration-slow: 600ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.25, 0.265, 1.25);
+  --ease-spring: cubic-bezier(0.5, 1.75, 0.75, 1.25);
+}
+
+/* Keyframe animations */
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shake-gentle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}

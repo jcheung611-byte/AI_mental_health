@@ -1,0 +1,190 @@
+/**
+ * Theme A: Warm & Calming with Energy
+ *
+ * Soothing, vibrant, organic, hopeful
+ * Sunset colors, organic shapes, breathing animations
+ */
+
+[data-theme='theme-a-warm'] {
+  /* ========================================
+     COLORS
+     ======================================== */
+
+  /* Primary: Sunset oranges & soft peaches */
+  --color-primary-50: #fff5f0;
+  --color-primary-100: #ffe6d9;
+  --color-primary-200: #ffcdb3;
+  --color-primary-300: #ffb38c;
+  --color-primary-400: #ff9a66;
+  --color-primary-500: #ff8f5c;
+  --color-primary-600: #ff7b47;
+  --color-primary-700: #ff6733;
+  --color-primary-800: #e65020;
+  --color-primary-900: #d93900;
+
+  /* Secondary: Warm purples & lavenders */
+  --color-secondary-50: #f7f3ff;
+  --color-secondary-100: #ede6ff;
+  --color-secondary-200: #dad0ff;
+  --color-secondary-300: #c6b7ff;
+  --color-secondary-400: #b39eff;
+  --color-secondary-500: #b78bf0;
+  --color-secondary-600: #a07ad9;
+  --color-secondary-700: #8a69c2;
+  --color-secondary-800: #6b46a8;
+  --color-secondary-900: #4f2e7d;
+
+  /* Accent: Golden yellow */
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fff3cc;
+  --color-accent-200: #ffebb3;
+  --color-accent-300: #ffe399;
+  --color-accent-400: #ffdb80;
+  --color-accent-500: #ffd166;
+  --color-accent-600: #ffc947;
+  --color-accent-700: #ffb524;
+  --color-accent-800: #e69f00;
+  --color-accent-900: #cc8900;
+
+  /* Neutral: Warm grays with peachy tint */
+  --color-neutral-50: #fdfbf9;
+  --color-neutral-100: #f7f4f1;
+  --color-neutral-200: #e8e3de;
+  --color-neutral-300: #d6cfc7;
+  --color-neutral-400: #b5aca1;
+  --color-neutral-500: #8a8079;
+  --color-neutral-600: #6e6760;
+  --color-neutral-700: #5c5550;
+  --color-neutral-800: #3d3832;
+  --color-neutral-900: #2a2420;
+
+  /* Semantic */
+  --color-success: #6fcf97;
+  --color-warning: #f2994a;
+  --color-error: #eb5757;
+  --color-info: #56ccf2;
+
+  /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+
+  --font-sans: 'Inter Variable', 'SF Pro Display', system-ui, -apple-system,
+    sans-serif;
+  --font-display: 'Cabinet Grotesk Variable', 'Inter Variable', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+
+  /* Fluid typography */
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --text-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-3xl: clamp(2rem, 1.7rem + 1.5vw, 3rem);
+  --text-4xl: clamp(2.5rem, 2rem + 2vw, 4rem);
+  --text-5xl: clamp(3rem, 2.5rem + 2.5vw, 5rem);
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  --tracking-tighter: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.01em;
+
+  /* ========================================
+     SPACING
+     ======================================== */
+
+  --space-px: 1px;
+  --space-0: 0;
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-8: 3rem; /* 48px */
+  --space-10: 4rem; /* 64px */
+  --space-12: 6rem; /* 96px */
+  --space-16: 8rem; /* 128px */
+  --space-20: 10rem; /* 160px */
+  --space-24: 12rem; /* 192px */
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-2xl: 40px;
+  --radius-3xl: 48px;
+  --radius-full: 9999px;
+
+  /* ========================================
+     SHADOWS
+     ======================================== */
+
+  --shadow-xs: 0 1px 2px 0 rgba(255, 143, 92, 0.05);
+  --shadow-sm: 0 2px 8px 0 rgba(255, 143, 92, 0.08);
+  --shadow-md: 0 4px 16px 0 rgba(255, 143, 92, 0.12);
+  --shadow-lg: 0 8px 32px 0 rgba(255, 143, 92, 0.16);
+  --shadow-xl: 0 16px 48px 0 rgba(255, 143, 92, 0.2);
+  --shadow-2xl: 0 24px 64px 0 rgba(255, 143, 92, 0.24);
+  --shadow-inner: inset 0 2px 4px 0 rgba(255, 143, 92, 0.06);
+  --shadow-glow: 0 0 24px 0 rgba(255, 143, 92, 0.4);
+  --shadow-glow-primary: 0 0 32px 0 rgba(255, 143, 92, 0.5);
+  --shadow-glow-accent: 0 0 32px 0 rgba(255, 209, 102, 0.5);
+
+  /* ========================================
+     ANIMATIONS
+     ======================================== */
+
+  --duration-fast: 200ms;
+  --duration-normal: 350ms;
+  --duration-slow: 500ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-elastic: cubic-bezier(0.68, -0.25, 0.265, 1.25);
+}
+
+/* Keyframe animations */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes wave-gentle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}

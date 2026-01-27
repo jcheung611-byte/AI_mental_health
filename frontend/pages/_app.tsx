@@ -1,8 +1,13 @@
-import type { AppProps } from 'next/app';
-import '@/styles/globals.css';
+import type { AppProps } from 'next/app'
+import '@/styles/globals.css'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 export default function App({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+  return (
+    <ThemeProvider defaultTheme="theme-c-minimal">
+      <Component {...pageProps} />
+    </ThemeProvider>
+  )
 }
 
 
