@@ -7,6 +7,7 @@
 import Head from 'next/head'
 import { DesktopNav, MobileNav } from '@/components/navigation'
 import { PageContainer, PageHeader } from '@/components/layout'
+import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher'
 
 export default function SettingsPage() {
   return (
@@ -30,6 +31,11 @@ export default function SettingsPage() {
 
             {/* Settings sections */}
             <div className="mt-8 space-y-6">
+              {/* Theme Selector */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <ThemeSwitcher />
+              </div>
+
               {/* Voice Settings */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">

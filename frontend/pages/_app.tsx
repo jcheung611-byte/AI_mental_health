@@ -4,7 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <ThemeProvider defaultTheme="theme-c-minimal">
+    <ThemeProvider defaultTheme="minimalist">
       <Component {...pageProps} />
     </ThemeProvider>
   )

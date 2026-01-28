@@ -5,12 +5,12 @@
  */
 
 import Head from 'next/head'
-import { ThemeSwitcher } from '@/components/ThemeSwitcher'
-import { useTheme } from '@/design-system/hooks/useTheme'
+import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher'
+import { useTheme } from '@/contexts/ThemeContext'
 
 export default function ThemeTest() {
-  const { theme, themeMetadata } = useTheme()
-  const currentTheme = themeMetadata[theme]
+  const { themeId, theme } = useTheme()
+  const currentTheme = theme
 
   return (
     <>
