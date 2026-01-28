@@ -117,8 +117,8 @@ export function MobileNav() {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-bottom z-50">
-      <div className="flex items-center justify-around px-2 py-2">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="flex items-center justify-around px-2 py-3">
         {navItems.map((item) => {
           const active = isActive(item.href)
 
@@ -153,9 +153,6 @@ export function MobileNav() {
           )
         })}
       </div>
-
-      {/* Safe area for iOS */}
-      <div className="h-safe-bottom bg-white" />
     </nav>
   )
 }

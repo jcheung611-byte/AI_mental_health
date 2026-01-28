@@ -167,8 +167,8 @@ function ChatInterface() {
         {/* Desktop Sidebar Navigation */}
         <DesktopNav />
 
-        {/* Main Chat Content */}
-        <main className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+        {/* Main Chat Content - Extra padding for mobile browser chrome */}
+        <main className="flex-1 flex flex-col min-w-0 pt-safe pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           <div className="flex-1 flex flex-col w-full max-w-4xl lg:max-w-5xl mx-auto min-h-0 md:p-4">
           <div className="bg-white md:rounded-xl md:shadow-md flex flex-col flex-1 min-h-0 md:mb-4">
             {/* Chat Header */}
@@ -195,8 +195,8 @@ function ChatInterface() {
               }}
             />
 
-            {/* Message List */}
-            <div className="flex-1 overflow-y-auto p-6">
+            {/* Message List - Extra bottom padding for mobile to scroll past input */}
+            <div className="flex-1 overflow-y-auto p-6 pb-8">
               <MessageList
                 messages={messages}
                 playbackStates={playbackStates}
