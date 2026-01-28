@@ -12,6 +12,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useThemedStyles } from '@/hooks/useThemedStyles'
 
 interface NavItem {
   id: string
@@ -109,6 +110,7 @@ const navItems: NavItem[] = [
 export function DesktopNav() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const router = useRouter()
+  const { theme } = useThemedStyles()
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -183,13 +185,15 @@ export function DesktopNav() {
               <li key={item.id}>
                 <Link href={item.href}>
                   <motion.a
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
-                      active
-                        ? 'bg-purple-50 text-purple-600'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                    whileHover={{ scale: theme.animations.hoverScale }}
+                    whileTap={{ scale: theme.animations.tapScale }}
+                    style={{
+                      backgroundColor: active ? `${theme.colors.primary}15` : 'transparent',
+                      color: active ? theme.colors.primary : theme.colors.text,
+                      borderRadius: theme.borderRadius.lg,
+                      transition: `all ${theme.animations.duration} ${theme.animations.easing}`,
+                    }}
+                    className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex-shrink-0">{item.icon}</div>
 

@@ -8,6 +8,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import type { Message as MessageType } from '@/contexts/ChatContext'
+import { useThemedStyles } from '@/hooks/useThemedStyles'
 
 interface MessageProps {
   message: MessageType
@@ -20,25 +21,28 @@ interface MessageProps {
 export function Message({ message, index, playbackState, onPlay, onPause }: MessageProps) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
+  const { styles, theme } = useThemedStyles()
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
+      transition={{
+        duration: parseFloat(theme.animations.duration) / 1000,
+        delay: index * 0.05,
+        ease: theme.animations.easing as any,
+      }}
       className={`
         flex w-full
         ${isUser ? 'justify-end md:justify-stretch' : 'justify-start md:justify-stretch'}
       `}
     >
       <div
+        style={isUser ? styles.userBubble : styles.assistantBubble}
         className={`
-          p-4 rounded-2xl md:rounded-lg
-          max-w-[85%] md:max-w-full
-          ${isUser
-            ? 'bg-blue-500 text-white border-0 md:bg-blue-50 md:text-gray-700 md:border md:border-blue-200'
-            : 'bg-purple-50 border border-purple-200'}
+          p-4 max-w-[85%] md:max-w-full
+          ${isUser ? 'text-white md:text-gray-700' : ''}
         `}
       >
       {/* Message Header */}
@@ -118,17 +122,16 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
           <button
             onClick={playbackState === 'playing' ? onPause : onPlay}
             disabled={playbackState === 'loading'}
-            className={`
-              px-4 py-2 min-h-[44px] rounded-lg font-medium text-sm transition-all
-              flex items-center justify-center
-              ${
-                playbackState === 'loading'
-                  ? 'bg-gray-400 text-white cursor-wait'
-                  : playbackState === 'playing'
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                  : 'bg-purple-500 hover:bg-purple-600 text-white'
-              }
-            `}
+            style={{
+              backgroundColor: playbackState === 'loading'
+                ? '#9CA3AF'
+                : playbackState === 'playing'
+                ? theme.colors.accent
+                : theme.colors.secondary,
+              borderRadius: theme.borderRadius.lg,
+              transition: `all ${theme.animations.duration} ${theme.animations.easing}`,
+            }}
+            className="px-4 py-2 min-h-[44px] font-medium text-sm text-white flex items-center justify-center disabled:cursor-wait"
             title={
               playbackState === 'loading'
                 ? 'Generating audio...'

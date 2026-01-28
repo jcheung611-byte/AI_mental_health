@@ -22,6 +22,7 @@ import { ChatHeader, MessageList, InputArea } from '@/components/chat'
 import { DesktopNav, MobileNav } from '@/components/navigation'
 import { MemoryPanel } from '@/components/memory/MemoryPanel'
 import { useKeyboardShortcuts, KEYBOARD_SHORTCUTS, getShortcutDisplay } from '@/hooks/useKeyboardShortcuts'
+import { useThemedStyles } from '@/hooks/useThemedStyles'
 
 // Main Chat Interface (uses all contexts)
 function ChatInterface() {
@@ -107,6 +108,9 @@ function ChatInterface() {
   // Local state for shortcuts help
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false)
 
+  // Themed styles
+  const { styles, theme } = useThemedStyles()
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onFocusInput: () => textareaRef.current?.focus(),
@@ -163,7 +167,7 @@ function ChatInterface() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen" style={styles.background}>
         {/* Desktop Sidebar Navigation */}
         <DesktopNav />
 
