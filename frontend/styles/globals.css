@@ -2,12 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import all theme CSS files */
-@import './themes/theme-a-warm.css';
-@import './themes/theme-b-modern.css';
-@import './themes/theme-c-minimal.css';
-@import './themes/theme-d-playful.css';
-
 /* Base styles */
 * {
   box-sizing: border-box;
@@ -22,9 +16,6 @@ body {
 }
 
 body {
-  font-family: var(--font-sans);
-  color: var(--color-neutral-900);
-  background: var(--color-neutral-50);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -43,7 +34,7 @@ body {
 
 /* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid var(--color-primary-500);
+  outline: 2px solid #8B5CF6;
   outline-offset: 2px;
 }
 
