@@ -39,17 +39,23 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
       `}
     >
       <div
-        style={isUser ? styles.userBubble : styles.assistantBubble}
+        style={{
+          borderRadius: isUser ? theme.borderRadius.xl : theme.borderRadius.xl,
+          boxShadow: theme.shadows.md,
+          transition: `all ${theme.animations.duration} ${theme.animations.easing}`,
+        }}
         className={`
           p-4 max-w-[85%] md:max-w-full
-          ${isUser ? 'text-white md:text-gray-700' : ''}
+          ${isUser
+            ? 'bg-[var(--color-primary)] text-white border-0 md:bg-[var(--color-primary)]/10 md:text-gray-700 md:border md:border-[var(--color-primary)]/25'
+            : 'bg-[var(--color-secondary)]/10 border border-[var(--color-secondary)]/25'}
         `}
       >
       {/* Message Header */}
       <p className={`text-sm font-medium mb-2 ${
         isUser
-          ? 'text-blue-100 md:text-blue-800'
-          : 'text-purple-800'
+          ? 'text-white/80 md:text-[var(--color-primary)]'
+          : 'text-[var(--color-secondary)]'
       }`}>
         {isUser ? '🎯 You' : '🤖 AI'}
       </p>
@@ -60,7 +66,7 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
       }`}>
         {isAssistant && !message.text ? (
           // Loading state for AI response
-          <div className="flex items-center gap-2 text-purple-600">
+          <div className="flex items-center gap-2 text-[var(--color-secondary)]">
             <svg
               className="animate-spin h-5 w-5"
               xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +109,7 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
               {message.text}
             </ReactMarkdown>
             {!message.audioUrl && message.text && (
-              <span className="inline-block w-2 h-4 bg-purple-600 ml-1 animate-pulse"></span>
+              <span className="inline-block w-2 h-4 bg-[var(--color-secondary)] ml-1 animate-pulse"></span>
             )}
           </>
         ) : (
@@ -114,7 +120,7 @@ export function Message({ message, index, playbackState, onPlay, onPause }: Mess
       {/* Message Footer */}
       <div className="flex items-center justify-between">
         <p className={`text-xs ${
-          isUser ? 'text-blue-100 md:text-gray-400' : 'text-gray-400'
+          isUser ? 'text-white/60 md:text-gray-400' : 'text-gray-400'
         }`}>{message.timestamp.toLocaleTimeString()}</p>
 
         {/* Play/Pause Button for Assistant Messages */}
