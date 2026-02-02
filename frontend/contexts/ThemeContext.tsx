@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { themes, defaultTheme, ThemeId, Theme } from '@/design-system/themes'
+import { generateShades } from '@/utils/colorUtils'
 
 interface ThemeContextValue {
   themeId: ThemeId
@@ -46,7 +47,44 @@ export function ThemeProvider({ children, defaultTheme: initialTheme = defaultTh
     const currentTheme = themes[themeId]
     const root = document.documentElement.style
 
-    // Colors
+    // Generate shade palettes for each color
+    const primaryShades = generateShades(currentTheme.colors.primary)
+    const secondaryShades = generateShades(currentTheme.colors.secondary)
+    const accentShades = generateShades(currentTheme.colors.accent)
+
+    // Set primary shades (50-900)
+    Object.entries(primaryShades).forEach(([shade, color]) => {
+      root.setProperty(`--color-primary-${shade}`, color)
+    })
+
+    // Set secondary shades (50-900)
+    Object.entries(secondaryShades).forEach(([shade, color]) => {
+      root.setProperty(`--color-secondary-${shade}`, color)
+    })
+
+    // Set accent shades (50-900)
+    Object.entries(accentShades).forEach(([shade, color]) => {
+      root.setProperty(`--color-accent-${shade}`, color)
+    })
+
+    // Set neutral shades (use gray scale)
+    root.setProperty('--color-neutral-50', '#F9FAFB')
+    root.setProperty('--color-neutral-100', '#F3F4F6')
+    root.setProperty('--color-neutral-200', '#E5E7EB')
+    root.setProperty('--color-neutral-300', '#D1D5DB')
+    root.setProperty('--color-neutral-400', '#9CA3AF')
+    root.setProperty('--color-neutral-500', '#6B7280')
+    root.setProperty('--color-neutral-600', '#4B5563')
+    root.setProperty('--color-neutral-700', '#374151')
+    root.setProperty('--color-neutral-800', '#1F2937')
+    root.setProperty('--color-neutral-900', '#111827')
+
+    // Set semantic colors
+    root.setProperty('--color-success', currentTheme.colors.success)
+    root.setProperty('--color-warning', currentTheme.colors.warning)
+    root.setProperty('--color-error', currentTheme.colors.error)
+
+    // Legacy flat colors (for backward compatibility with bracket syntax)
     root.setProperty('--color-primary', currentTheme.colors.primary)
     root.setProperty('--color-primary-light', currentTheme.colors.primaryLight)
     root.setProperty('--color-primary-dark', currentTheme.colors.primaryDark)
